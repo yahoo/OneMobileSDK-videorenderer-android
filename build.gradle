@@ -1,0 +1,47 @@
+/*
+ * Copyright (c) 2016 One by Aol : Publishers. All rights reserved.
+ */
+
+repositories {
+    jcenter()
+}
+
+buildscript {
+    repositories {
+        jcenter()
+    }
+
+    dependencies {
+        classpath 'com.android.tools.build:gradle:2.3.1'
+        classpath 'com.github.dcendents:android-maven-gradle-plugin:1.5'
+        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7.3'
+    }
+}
+
+ext {
+    // Android library config
+    BUILD_TOOLS_VERSION = "25.0.2"
+    MIN_API_VERSION = 16
+    TARGET_API_VERSION = 25
+    LIBRARY_VERSION = "1.0"
+
+    // Javadoc configuration
+    JAVADOC_TITLE = "OneMobileSDK stream renderer javadoc"
+
+    // Bintray publish config
+    BINTRAY_KEY = System.getenv('BINTRAY_KEY')
+    BINTRAY_USER = System.getenv('BINTRAY_USER')
+    GROUP_ID = 'com.aol.one.publishers.android'
+    REPO_NAME = 'one-mobile-sdk-renderer'
+    ARTIFACT_ID = 'renderer'
+}
+
+apply from: 'tools/android.gradle'
+apply from: 'tools/javadoc.gradle'
+apply from: 'tools/sources.gradle'
+apply from: 'tools/bintray.gradle'
+
+dependencies {
+    compile 'com.google.android.exoplayer:exoplayer:r2.2.0'
+}
+
