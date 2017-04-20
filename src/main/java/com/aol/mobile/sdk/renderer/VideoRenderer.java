@@ -4,6 +4,7 @@
 
 package com.aol.mobile.sdk.renderer;
 
+import android.content.Context;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.view.View;
@@ -80,6 +81,11 @@ public interface VideoRenderer {
      */
     void dispose();
 
+    /**
+     * Gets renderer viewport as android {@link View} instance
+     *
+     * @return android {@link View} port
+     */
     @NonNull
     View getViewport();
 
@@ -156,5 +162,10 @@ public interface VideoRenderer {
              */
             CONTENT
         }
+    }
+
+    interface Producer {
+        @NonNull
+        VideoRenderer createRenderer(@NonNull Context context);
     }
 }

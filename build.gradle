@@ -43,5 +43,9 @@ apply from: 'tools/bintray.gradle'
 
 dependencies {
     compile 'com.google.android.exoplayer:exoplayer:r2.2.0'
+
+    testCompile 'junit:junit:4.12'
+    testCompile 'org.assertj:assertj-core:2.6.0'
+    testCompile 'org.mockito:mockito-core:2.7.22'
 }
 
