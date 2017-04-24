@@ -4,47 +4,62 @@ package com.aol.mobile.sdk.renderer;
 import android.content.Context;
 import android.support.annotation.NonNull;
 
-import java.lang.reflect.Constructor;
+import java.util.Collection;
 import java.util.HashMap;
 
-public class RenderersRegistry {
-    private static final HashMap<String, Constructor<? extends VideoRenderer>> renderCreators = new HashMap<>();
+public final class RenderersRegistry {
+    public static final String FLAT_RENDERER = "com.onemobilesdk.videorenderer.flat@" + BuildConfig.VERSION_NAME;
+    public static final String THREE_SIXTY_RENDERER = "com.onemobilesdk.videorenderer.360@" + BuildConfig.VERSION_NAME;
+    public static final String FISH_EYE_RENDERER = "com.onemobilesdk.videorenderer.fisheye@" + BuildConfig.VERSION_NAME;
 
-    public enum ContentType {
-        FLAT("stock_flat"),
-        STOCK_360("stock_360"),
-        STOCK_360_FISH_EYE("stock_360_fisheye");
-
-        @NonNull
-        private final String value;
-
-        ContentType(@NonNull String value) {
-            this.value = value;
-        }
-    }
+    @NonNull
+    static final HashMap<String, VideoRenderer.Producer> registry = new HashMap<>();
 
     static {
-        register(ExoFlatRenderer.class, ContentType.FLAT.value);
-        register(ExoSphereRenderer.class, ContentType.STOCK_360.value);
-        register(ExoFishEyeRenderer.class, ContentType.STOCK_360_FISH_EYE.value);
+        registerRenderer(FLAT_RENDERER, new VideoRenderer.Producer() {
+            @NonNull
+            @Override
+            public VideoRenderer createRenderer(@NonNull Context context) {
+                return new ExoFlatRenderer(context);
+            }
+        });
+
+        registerRenderer(THREE_SIXTY_RENDERER, new VideoRenderer.Producer() {
+            @NonNull
+            @Override
+            public VideoRenderer createRenderer(@NonNull Context context) {
+                return new ExoSphereRenderer(context);
+            }
+        });
+
+        registerRenderer(FISH_EYE_RENDERER, new VideoRenderer.Producer() {
+            @NonNull
+            @Override
+            public VideoRenderer createRenderer(@NonNull Context context) {
+                return new ExoFishEyeRenderer(context);
+            }
+        });
     }
 
-    public static void register(@NonNull Class<? extends VideoRenderer> rendererClass, @NonNull String renderId) {
-        try {
-            renderCreators.put(renderId, rendererClass.getConstructor(Context.class));
-        } catch (NoSuchMethodException e) {
-            throw new RuntimeException(e);
-        }
+    public static void registerRenderer(@NonNull String rendererId, @NonNull VideoRenderer.Producer producer) {
+        if (rendererId.length() == 0)
+            throw new IllegalArgumentException("Renderer id must be in format <name@version>");
+
+        if (rendererId.split("@").length != 2)
+            throw new IllegalArgumentException("Renderer id must be in format <name@version>");
+
+        registry.put(rendererId, producer);
     }
 
-    public static VideoRenderer getRendererFor(@NonNull Context context, @NonNull ContentType contentType) {
-        Constructor<? extends VideoRenderer> constructor = renderCreators.get(contentType.value);
-        if (constructor == null) throw new RuntimeException();
+    @NonNull
+    public static Collection<String> listRenderers() {
+        return registry.keySet();
+    }
 
-        try {
-            return constructor.newInstance(context);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+    @NonNull
+    public static VideoRenderer getRenderer(@NonNull String id, @NonNull Context context) {
+        VideoRenderer.Producer producer = registry.get(id);
+        if (producer == null) throw new RuntimeException("No renderer record found for id:" + id);
+        return producer.createRenderer(context);
     }
 }
