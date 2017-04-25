@@ -119,7 +119,7 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
     }
 
     private void updateExoPlayerSource(@NonNull MediaSource source) {
-        exoPlayer = ExoHelper.getExoPlayer(context, handler);
+        exoPlayer = ExoHelper.getExoPlayer(context);
         exoPlayer.prepare(source);
         exoPlayer.setTextOutput(new TextRenderer.Output() {
             @Override
