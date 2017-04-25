@@ -24,7 +24,7 @@ import com.google.android.exoplayer2.source.dash.DefaultDashChunkSource;
 import com.google.android.exoplayer2.source.hls.HlsMediaSource;
 import com.google.android.exoplayer2.source.smoothstreaming.DefaultSsChunkSource;
 import com.google.android.exoplayer2.source.smoothstreaming.SsMediaSource;
-import com.google.android.exoplayer2.trackselection.AdaptiveVideoTrackSelection;
+import com.google.android.exoplayer2.trackselection.AdaptiveTrackSelection;
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
 import com.google.android.exoplayer2.trackselection.TrackSelection;
 import com.google.android.exoplayer2.trackselection.TrackSelector;
@@ -47,9 +47,9 @@ public class ExoHelper {
     private static final int MIN_REBUFFER_MS = 5000;
 
     @NonNull
-    public static OneExoPlayer getExoPlayer(@NonNull Context context, @NonNull Handler handler) {
+    public static OneExoPlayer getExoPlayer(@NonNull Context context) {
         TrackSelection.Factory videoTrackSelectionFactory =
-                new AdaptiveVideoTrackSelection.Factory(BANDWIDTH_METER);
+                new AdaptiveTrackSelection.Factory(BANDWIDTH_METER);
 
         TrackSelector trackSelector = new DefaultTrackSelector(videoTrackSelectionFactory);
 
