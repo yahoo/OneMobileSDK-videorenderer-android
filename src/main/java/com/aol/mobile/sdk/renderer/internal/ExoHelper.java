@@ -54,7 +54,7 @@ public class ExoHelper {
         TrackSelector trackSelector = new DefaultTrackSelector(videoTrackSelectionFactory);
 
         LoadControl loadControl = new DefaultLoadControl(
-                (new DefaultAllocator(true, C.DEFAULT_BUFFER_SEGMENT_SIZE)),
+                new DefaultAllocator(true, C.DEFAULT_BUFFER_SEGMENT_SIZE),
                 DefaultLoadControl.DEFAULT_MIN_BUFFER_MS,
                 DefaultLoadControl.DEFAULT_MAX_BUFFER_MS,
                 MIN_BUFFER_MS,

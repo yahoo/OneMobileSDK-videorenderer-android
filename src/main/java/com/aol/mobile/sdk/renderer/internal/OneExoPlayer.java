@@ -5,7 +5,6 @@
 package com.aol.mobile.sdk.renderer.internal;
 
 import android.content.Context;
-import android.os.Build;
 import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -250,16 +249,9 @@ public final class OneExoPlayer implements ExoPlayer {
     @NonNull
     private Renderer[] buildRenderers(@NonNull Context context, long allowedVideoJoiningTimeMs) {
         ArrayList<Renderer> renderersList = new ArrayList<>();
-        MediaCodecVideoRenderer videoRenderer;
-        if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-            videoRenderer = new MediaCodecVideoRenderer(context,
-                    MediaCodecSelector.DEFAULT, allowedVideoJoiningTimeMs, null, false, mainHandler,
-                    componentListener, MAX_DROPPED_VIDEO_FRAME_COUNT_TO_NOTIFY);
-        } else {
-            videoRenderer = new MediaCodecVideoRenderer(context,
-                    MediaCodecSelector.DEFAULT, allowedVideoJoiningTimeMs, null, false, mainHandler,
-                    componentListener, MAX_DROPPED_VIDEO_FRAME_COUNT_TO_NOTIFY);
-        }
+        MediaCodecVideoRenderer videoRenderer = new MediaCodecVideoRenderer(context,
+                MediaCodecSelector.DEFAULT, allowedVideoJoiningTimeMs, null, false, mainHandler,
+                componentListener, MAX_DROPPED_VIDEO_FRAME_COUNT_TO_NOTIFY);
         renderersList.add(videoRenderer);
 
         Renderer audioRenderer = new MediaCodecAudioRenderer(MediaCodecSelector.DEFAULT,
