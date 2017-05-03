@@ -19,11 +19,7 @@ import com.google.android.exoplayer2.source.ExtractorMediaSource;
 import com.google.android.exoplayer2.source.MediaSource;
 import com.google.android.exoplayer2.source.MergingMediaSource;
 import com.google.android.exoplayer2.source.SingleSampleMediaSource;
-import com.google.android.exoplayer2.source.dash.DashMediaSource;
-import com.google.android.exoplayer2.source.dash.DefaultDashChunkSource;
 import com.google.android.exoplayer2.source.hls.HlsMediaSource;
-import com.google.android.exoplayer2.source.smoothstreaming.DefaultSsChunkSource;
-import com.google.android.exoplayer2.source.smoothstreaming.SsMediaSource;
 import com.google.android.exoplayer2.trackselection.AdaptiveTrackSelection;
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
 import com.google.android.exoplayer2.trackselection.TrackSelection;
@@ -71,26 +67,13 @@ public class ExoHelper {
         int type = Util.inferContentType(videoUri.getLastPathSegment());
         MediaSource source;
         switch (type) {
-            case C.TYPE_SS:
-                source = new SsMediaSource(videoUri, buildDataSourceFactory(context, null),
-                        new DefaultSsChunkSource.Factory(buildDataSourceFactory(context, BANDWIDTH_METER)),
-                        handler, null);
-                break;
-            case C.TYPE_DASH:
-                source = new DashMediaSource(videoUri, buildDataSourceFactory(context, null),
-                        new DefaultDashChunkSource.Factory(buildDataSourceFactory(context, BANDWIDTH_METER)),
-                        handler, null);
-                break;
             case C.TYPE_HLS:
                 source = new HlsMediaSource(videoUri, buildDataSourceFactory(context, BANDWIDTH_METER),
                         handler, null);
                 break;
-            case C.TYPE_OTHER:
+            default: {
                 source = new ExtractorMediaSource(videoUri, buildDataSourceFactory(context, BANDWIDTH_METER),
                         new DefaultExtractorsFactory(), handler, null);
-                break;
-            default: {
-                throw new IllegalStateException("Unsupported type: " + type);
             }
         }
         if (subtitleUri != null) {

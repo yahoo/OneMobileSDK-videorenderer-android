@@ -21,6 +21,7 @@ import com.aol.mobile.sdk.renderer.internal.OneExoPlayer;
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.ExoPlaybackException;
 import com.google.android.exoplayer2.ExoPlayer;
+import com.google.android.exoplayer2.PlaybackParameters;
 import com.google.android.exoplayer2.Timeline;
 import com.google.android.exoplayer2.source.BehindLiveWindowException;
 import com.google.android.exoplayer2.source.MediaSource;
@@ -348,6 +349,10 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
 
     @Override
     public void onPositionDiscontinuity() {
+    }
+
+    @Override
+    public void onPlaybackParametersChanged(PlaybackParameters playbackParameters) {
     }
 
     @Override
