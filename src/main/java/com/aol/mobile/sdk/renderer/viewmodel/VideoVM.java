@@ -4,24 +4,16 @@ import android.support.annotation.Nullable;
 
 public class VideoVM {
 
-    public boolean shouldPlay;
+    @Nullable
     public String videoUrl;
-    public Long seekPosition;
-    public boolean isScalable = true;
-    public boolean isMaintainAspectRatio = true;
-
-    public boolean isSourceChanged = true;
-    public boolean isMuted;
-    public boolean isMuteChanged = true;
-    public boolean isPresented;
-
-    public int videoIndex = -1;
     @Nullable
     public String subtitleUrl;
+    public boolean shouldPlay;
+    public Long seekPosition;
+
+    public boolean isScalable = true;
+    public boolean isMaintainAspectRatio = true;
+    public boolean isMuted;
     public double longitude;
     public double latitude;
-    public boolean isGeometryChanged;
-    public boolean isCameraOrientationChanged;
-    public boolean hadError;
-
 }

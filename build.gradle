@@ -23,7 +23,7 @@ ext {
     BUILD_TOOLS_VERSION = "25.0.2"
     MIN_API_VERSION = 16
     TARGET_API_VERSION = 25
-    LIBRARY_VERSION = "1.2"
+    LIBRARY_VERSION = "2.0"
 
     // Javadoc configuration
     JAVADOC_TITLE = "OneMobileSDK stream renderer javadoc"

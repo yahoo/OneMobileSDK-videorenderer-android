@@ -177,31 +177,22 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
     }
 
     public void render(VideoVM videoVM) {
-        if (videoVM.isSourceChanged && videoVM.videoUrl != null) {
-            this.scalable = videoVM.isScalable;
-            this.maintainAspectRatio = videoVM.isMaintainAspectRatio;
-            String subtitleUrl = videoVM.subtitleUrl;
-            playVideo(videoVM.videoUrl, subtitleUrl);
+        this.scalable = videoVM.isScalable;
+        this.maintainAspectRatio = videoVM.isMaintainAspectRatio;
+        if (videoVM.videoUrl != null && !videoVM.videoUrl.equals(videoUrl)) {
+            playVideo(videoVM.videoUrl, videoVM.subtitleUrl);
+        } else if (videoVM.videoUrl == null && videoVM.videoUrl != videoUrl) {
+            playVideo(null, null);
         }
 
-        if (videoVM.isPresented) {
-            if (videoVM.shouldPlay) {
-                resumePlayback();
-            } else {
-                pausePlayback();
-            }
+        if (videoVM.shouldPlay) {
+            resumePlayback();
         } else {
-            if (videoVM.videoUrl != null) {
-                pausePlayback();
-            } else {
-                playVideo(null, null);
-            }
+            pausePlayback();
         }
 
-        if (videoVM.isCameraOrientationChanged) {
-            if (streamRenderer instanceof GlEsRendererView) {
-                ((GlEsRendererView) streamRenderer).setCameraOrientation(videoVM.longitude, videoVM.latitude);
-            }
+        if (streamRenderer instanceof GlEsRendererView) {
+            ((GlEsRendererView) streamRenderer).setCameraOrientation(videoVM.longitude, videoVM.latitude);
         }
 
         Long seekPos = videoVM.seekPosition;
@@ -209,7 +200,7 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
             seekTo(seekPos);
         }
 
-        if (videoVM.isMuteChanged) {
+        if (videoVM.isMuted != isMuted) {
             setMute(videoVM.isMuted);
         }
     }
