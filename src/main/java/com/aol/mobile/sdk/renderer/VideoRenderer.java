@@ -9,6 +9,8 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.view.View;
 
+import com.aol.mobile.sdk.renderer.viewmodel.VideoVM;
+
 public interface VideoRenderer {
     /**
      * Sets renderer listener
@@ -18,68 +20,11 @@ public interface VideoRenderer {
     void setListener(@Nullable Listener listener);
 
     /**
-     * Initiates playback of video with subtitles
-     *
-     * @param videoUrl    video source
-     * @param subtitleUrl subtitles source, may be absent
-     */
-    void presentUrl(@Nullable String videoUrl, @Nullable String subtitleUrl);
-
-    /**
-     * Pauses video playback
-     */
-    void pausePlayback();
-
-    /**
-     * Resumes video playback
-     */
-    void resumePlayback();
-
-    /**
-     * Mutes audio volume
-     */
-    void mute();
-
-    /**
-     * Unmutes audio volume
-     */
-    void unmute();
-
-    /**
-     * Performs seek to video position. When seek is performed renderer should spawn
-     * {@link Listener#onSeekPerformed()} event.
-     *
-     * @param position time in milliseconds.
-     */
-    void seekTo(long position);
-
-    /**
-     * Sets video observer's orientation in space. Default position <b>(0f, 0f)</b>
-     *
-     * @param longitude horizontal angle in radians from -180˚ to 180˚
-     * @param latitude  vertical angle in radians from -85˚ to 85˚
-     */
-    void setCameraOrientation(double longitude, double latitude);
-
-    /**
-     * Sets video scalable flag. Default value is <b>true</b>
-     *
-     * @param scalable <b>true</b> if video should fill viewport, <b>false</b> otherwise
-     */
-    void setScalable(boolean scalable);
-
-    /**
-     * Sets flag for maintenance of video aspect ration. Works in conjunction with
-     *
-     * @param maintainAspectRatio <b>true</b> if renderer must respect video aspect ratio,
-     *                            <b>false</b> otherwise
-     */
-    void setMaintainAspectRatio(boolean maintainAspectRatio);
-
-    /**
      * Disposes all resources
      */
     void dispose();
+
+    void render(VideoVM videoVM);
 
     /**
      * Gets renderer viewport as android {@link View} instance
@@ -147,8 +92,6 @@ public interface VideoRenderer {
 
         /**
          * Fired when seek if performed.
-         *
-         * @see VideoRenderer#seekTo(long)
          */
         void onSeekPerformed();
 

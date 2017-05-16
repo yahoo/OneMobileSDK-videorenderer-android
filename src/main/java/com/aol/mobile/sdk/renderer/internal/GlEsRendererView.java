@@ -18,6 +18,8 @@ import com.aol.mobile.sdk.renderer.gles.VideoSurfaceListener;
 @MainThread
 public final class GlEsRendererView extends GLSurfaceView {
     private final SceneRenderer renderer;
+    private double longitude;
+    private double latitude;
 
     public GlEsRendererView(@NonNull Context context) {
         this(context, null);
@@ -52,6 +54,9 @@ public final class GlEsRendererView extends GLSurfaceView {
     }
 
     public void setCameraOrientation(final double longitude, final double latitude) {
+        if (longitude == this.longitude && latitude == this.latitude) return;
+        this.longitude = longitude;
+        this.latitude = latitude;
         queueEvent(new Runnable() {
             @Override
             public void run() {

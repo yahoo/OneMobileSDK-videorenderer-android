@@ -18,6 +18,7 @@ import com.aol.mobile.sdk.renderer.internal.ExoHelper;
 import com.aol.mobile.sdk.renderer.internal.FlatRendererView;
 import com.aol.mobile.sdk.renderer.internal.GlEsRendererView;
 import com.aol.mobile.sdk.renderer.internal.OneExoPlayer;
+import com.aol.mobile.sdk.renderer.viewmodel.VideoVM;
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.ExoPlaybackException;
 import com.google.android.exoplayer2.ExoPlayer;
@@ -175,13 +176,36 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
         }
     }
 
-    @Override
-    public void presentUrl(@Nullable String videoUrl, @Nullable String subtitleUrl) {
-        playVideo(videoUrl, subtitleUrl);
+    public void render(VideoVM videoVM) {
+        this.scalable = videoVM.isScalable;
+        this.maintainAspectRatio = videoVM.isMaintainAspectRatio;
+        if (videoVM.videoUrl != null && !videoVM.videoUrl.equals(videoUrl)) {
+            playVideo(videoVM.videoUrl, videoVM.subtitleUrl);
+        } else if (videoVM.videoUrl == null && videoVM.videoUrl != videoUrl) {
+            playVideo(null, null);
+        }
+
+        if (videoVM.shouldPlay) {
+            resumePlayback();
+        } else {
+            pausePlayback();
+        }
+
+        if (streamRenderer instanceof GlEsRendererView) {
+            ((GlEsRendererView) streamRenderer).setCameraOrientation(videoVM.longitude, videoVM.latitude);
+        }
+
+        Long seekPos = videoVM.seekPosition;
+        if (seekPos != null) {
+            seekTo(seekPos);
+        }
+
+        if (videoVM.isMuted != isMuted) {
+            setMute(videoVM.isMuted);
+        }
     }
 
-    @Override
-    public void pausePlayback() {
+    private void pausePlayback() {
         if (shouldPlay) {
             shouldPlay = false;
 
@@ -195,8 +219,7 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
         }
     }
 
-    @Override
-    public void resumePlayback() {
+    private void resumePlayback() {
         if (!shouldPlay) {
             shouldPlay = true;
 
@@ -210,37 +233,20 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
         }
     }
 
-    @Override
-    public void mute() {
-        isMuted = true;
+    private void setMute(boolean isMuted) {
+        this.isMuted = isMuted;
         if (exoPlayer != null) {
-            exoPlayer.setVolume(0f);
+            exoPlayer.setVolume(isMuted ? 0f : 1f);
         }
     }
 
-    @Override
-    public void unmute() {
-        isMuted = false;
-        if (exoPlayer != null) {
-            exoPlayer.setVolume(1f);
-        }
-    }
-
-    @Override
-    public void seekTo(long position) {
+    private void seekTo(long position) {
         if (exoPlayer != null && Math.abs(exoPlayer.getCurrentPosition() - position) > 100) {
             exoPlayer.seekTo(position);
         }
 
         if (listener != null) {
             listener.onSeekPerformed();
-        }
-    }
-
-    @Override
-    public void setCameraOrientation(double longitude, double latitude) {
-        if (streamRenderer instanceof GlEsRendererView) {
-            ((GlEsRendererView) streamRenderer).setCameraOrientation(longitude, latitude);
         }
     }
 
@@ -382,16 +388,6 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
     @Override
     public View getViewport() {
         return this;
-    }
-
-    @Override
-    public void setScalable(boolean scalable) {
-        this.scalable = scalable;
-    }
-
-    @Override
-    public void setMaintainAspectRatio(boolean maintainAspectRatio) {
-        this.maintainAspectRatio = maintainAspectRatio;
     }
 
     @Override
