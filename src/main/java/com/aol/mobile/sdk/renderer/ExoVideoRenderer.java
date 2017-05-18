@@ -125,9 +125,9 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
         exoPlayer.prepare(source);
         exoPlayer.setTextOutput(new TextRenderer.Output() {
             @Override
-            public void onCues(List<Cue> cues) {
+            public void onCues(@Nullable List<Cue> cues) {
                 if (listener == null) return;
-                if (cues.size() > 0) {
+                if (cues!= null && cues.size() > 0) {
                     listener.onSubtitleUpdated(cues.get(0).text);
                 } else {
                     listener.onSubtitleUpdated(null);
