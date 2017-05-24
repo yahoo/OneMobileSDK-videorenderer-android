@@ -94,6 +94,6 @@ public class ExoHelper {
 
     @NonNull
     private static HttpDataSource.Factory buildHttpDataSourceFactory(@NonNull Context context, @Nullable DefaultBandwidthMeter bandwidthMeter) {
-        return new DefaultHttpDataSourceFactory(getUserAgent(context, "VideoSDK"), bandwidthMeter);
+        return new DefaultHttpDataSourceFactory(getUserAgent(context, "VideoSDK"), bandwidthMeter, 8000, 8000, true);
     }
 }
