@@ -97,6 +97,7 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
     private void playVideo(@Nullable String videoUrl, @Nullable String subtitleUrl) {
         duration = null;
         if (this.videoUrl != null) {
+            progressTimer.stop();
             if (exoPlayer != null) {
                 exoPlayer.setVideoSurface(null);
                 if (streamRenderer instanceof FlatRendererView) {
@@ -107,14 +108,12 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
                 exoPlayer.stop();
                 exoPlayer.removeListener(this);
                 exoPlayer.release();
+                exoPlayer = null;
             }
         }
         this.videoUrl = videoUrl;
         this.subtitleUrl = subtitleUrl;
-        if (videoUrl == null) {
-            progressTimer.stop();
-            return;
-        }
+        if (videoUrl == null) return;
 
         MediaSource source = ExoHelper.buildMediaSource(videoUrl, subtitleUrl, handler, context);
         updateExoPlayerSource(source);
