@@ -43,13 +43,12 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
     @NonNull
     private final Handler handler = new Handler();
     @Nullable
+    protected Listener listener;
+    @Nullable
     private OneExoPlayer exoPlayer;
     @NonNull
     private ProgressTimer progressTimer = new ProgressTimer();
     private boolean isMuted = false;
-
-    @Nullable
-    private Listener listener;
     @Nullable
     private View streamRenderer;
     @Nullable
@@ -77,7 +76,6 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
     public ExoVideoRenderer(@NonNull Context context) {
         super(context);
         this.context = context;
-
     }
 
     protected void setRenderer(@NonNull View renderer) {

@@ -3,7 +3,6 @@ package com.aol.mobile.sdk.renderer.viewmodel;
 import android.support.annotation.Nullable;
 
 public class VideoVM {
-
     @Nullable
     public String videoUrl;
     @Nullable
