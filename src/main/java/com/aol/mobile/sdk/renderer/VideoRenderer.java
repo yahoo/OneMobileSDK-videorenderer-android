@@ -34,6 +34,7 @@ public interface VideoRenderer {
     @NonNull
     View getViewport();
 
+
     interface Listener {
         /**
          * Fired when new subtitle need to be shown
@@ -89,6 +90,9 @@ public interface VideoRenderer {
          * @param error one of {@link Error}
          */
         void onErrorOccurred(@NonNull Error error);
+
+
+        void onCameraDirectionChanged(double lng, double lat);
 
         /**
          * Fired when seek if performed.
