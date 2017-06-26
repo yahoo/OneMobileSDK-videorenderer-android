@@ -39,8 +39,6 @@ public class ExoHelper {
     public static final long DEFAULT_ALLOWED_VIDEO_JOINING_TIME_MS = 5000;
     @NonNull
     private static final DefaultBandwidthMeter BANDWIDTH_METER = new DefaultBandwidthMeter();
-    private static final int MIN_BUFFER_MS = 5000;
-    private static final int MIN_REBUFFER_MS = 5000;
 
     @NonNull
     public static OneExoPlayer getExoPlayer(@NonNull Context context) {
@@ -49,12 +47,7 @@ public class ExoHelper {
 
         TrackSelector trackSelector = new DefaultTrackSelector(videoTrackSelectionFactory);
 
-        LoadControl loadControl = new DefaultLoadControl(
-                new DefaultAllocator(true, C.DEFAULT_BUFFER_SEGMENT_SIZE),
-                DefaultLoadControl.DEFAULT_MIN_BUFFER_MS,
-                DefaultLoadControl.DEFAULT_MAX_BUFFER_MS,
-                MIN_BUFFER_MS,
-                MIN_REBUFFER_MS);
+        LoadControl loadControl = new DefaultLoadControl(new DefaultAllocator(true, C.DEFAULT_BUFFER_SEGMENT_SIZE));
 
         return new OneExoPlayer(context, trackSelector, loadControl, DEFAULT_ALLOWED_VIDEO_JOINING_TIME_MS);
     }
