@@ -290,6 +290,7 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
 
                 case ExoPlayer.STATE_ENDED:
                     if (!isLive) {
+                        exoPlayer.setPlayWhenReady(false);
                         progressTimer.stop();
                         if (listener != null) {
                             if (this.duration == null) {
@@ -298,7 +299,6 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
                             }
                             listener.onVideoPositionUpdated(exoPlayer.getDuration());
                         }
-                        exoPlayer.setPlayWhenReady(false);
                         if (listener != null) {
                             listener.onVideoPlaybackFlagUpdated(false);
                             listener.onVideoEnded();
