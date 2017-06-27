@@ -148,6 +148,7 @@ public final class OneExoPlayer implements ExoPlayer {
 
     @Override
     public void setPlaybackParameters(@Nullable PlaybackParameters playbackParameters) {
+        player.setPlaybackParameters(playbackParameters);
     }
 
     @Override
@@ -195,13 +196,13 @@ public final class OneExoPlayer implements ExoPlayer {
     @Override
     @Nullable
     public TrackGroupArray getCurrentTrackGroups() {
-        return null;
+        return player.getCurrentTrackGroups();
     }
 
     @Override
     @Nullable
     public TrackSelectionArray getCurrentTrackSelections() {
-        return null;
+        return player.getCurrentTrackSelections();
     }
 
     @Override
