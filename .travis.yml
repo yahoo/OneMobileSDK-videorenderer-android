@@ -27,6 +27,8 @@ cache:
 
 script: ./gradlew lintRelease testRelease
 
+before_deploy: ./gradlew gitPublishPush
+
 deploy:
   skip_cleanup: true
   provider: script
@@ -34,7 +36,6 @@ deploy:
     branch: master
     tags: true
   script:
-    - ./gradlew gitPublishPush
     - echo Deployed
 
 notifications:
