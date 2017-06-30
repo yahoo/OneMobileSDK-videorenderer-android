@@ -33,9 +33,9 @@ deploy:
   on:
     branch: master
     tags: true
-  script:
-    - ./gradlew gitPublishPush
-    - echo Deployed
+  script: echo Deploying
+
+after_deploy: ./gradlew gitPublishPush
 
 notifications:
   email: false
