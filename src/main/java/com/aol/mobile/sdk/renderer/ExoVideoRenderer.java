@@ -71,6 +71,10 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
     @NonNull
     private final DefaultExtractorsFactory defaultExtractorsFactory = new DefaultExtractorsFactory();
     @NonNull
+    private final DataSource.Factory dataSourceFactory;
+    @Nullable
+    protected Listener listener;
+    @NonNull
     private final DefaultTrackSelector trackSelector = new DefaultTrackSelector(adaptiveTrackSelectionFactory) {
         @Override
         protected TrackSelection selectTextTrack(TrackGroupArray groups, int[][] formatSupport, String preferredTextLanguage, String preferredAudioLanguage, boolean exceedRendererCapabilitiesIfNecessary) {
@@ -80,18 +84,37 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
                     Format format = trackGroup.getFormat(trackIndex);
 
                     if (!MimeTypes.APPLICATION_SUBRIP.equalsIgnoreCase(format.sampleMimeType)) {
+                        handler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                if (listener != null) listener.onSubtitlesAvailabilityChanged(true);
+                            }
+                        });
+
+
                         return new FixedTrackSelection(trackGroup, trackIndex);
                     }
                 }
             }
 
-            return super.selectTextTrack(groups, formatSupport, preferredTextLanguage, preferredAudioLanguage, exceedRendererCapabilitiesIfNecessary);
+            final TrackSelection trackSelection = super.selectTextTrack(groups, formatSupport, preferredTextLanguage, preferredAudioLanguage, exceedRendererCapabilitiesIfNecessary);
+
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    if (listener != null) {
+                        if (trackSelection == null) {
+                            listener.onSubtitlesAvailabilityChanged(false);
+                        } else {
+                            listener.onSubtitlesAvailabilityChanged(true);
+                        }
+                    }
+                }
+            });
+
+            return trackSelection;
         }
     };
-    @NonNull
-    private final DataSource.Factory dataSourceFactory;
-    @Nullable
-    protected Listener listener;
     @Nullable
     private SimpleExoPlayer exoPlayer;
     @NonNull

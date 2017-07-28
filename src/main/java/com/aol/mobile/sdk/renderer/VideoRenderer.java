@@ -37,6 +37,13 @@ public interface VideoRenderer {
 
     interface Listener {
         /**
+         * Fired when subtitles presence is detected
+         *
+         * @param areAvailable flag of subtitles presence
+         */
+        void onSubtitlesAvailabilityChanged(boolean areAvailable);
+
+        /**
          * Fired when new subtitle need to be shown
          *
          * @param subtitle text of subtitle to show
