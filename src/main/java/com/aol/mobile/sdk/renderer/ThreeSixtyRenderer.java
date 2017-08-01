@@ -42,7 +42,8 @@ class ThreeSixtyRenderer extends ExoVideoRenderer {
         super.render(videoVM);
 
         boolean isSourceChanged;
-        if (videoUrl != videoVM.videoUrl) {
+        if ((videoUrl == null && videoVM.videoUrl != null) ||
+                (videoUrl != null && !videoUrl.equals(videoVM.videoUrl))) {
             videoUrl = videoVM.videoUrl;
             isSourceChanged = true;
         } else {
