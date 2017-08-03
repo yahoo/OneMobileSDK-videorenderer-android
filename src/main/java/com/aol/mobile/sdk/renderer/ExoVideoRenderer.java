@@ -6,6 +6,7 @@ package com.aol.mobile.sdk.renderer;
 
 import android.content.Context;
 import android.graphics.Matrix;
+import android.net.Uri;
 import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -14,38 +15,88 @@ import android.view.View;
 import android.widget.FrameLayout;
 
 import com.aol.mobile.sdk.renderer.gles.VideoSurfaceListener;
-import com.aol.mobile.sdk.renderer.internal.ExoHelper;
 import com.aol.mobile.sdk.renderer.internal.FlatRendererView;
 import com.aol.mobile.sdk.renderer.internal.GlEsRendererView;
-import com.aol.mobile.sdk.renderer.internal.OneExoPlayer;
 import com.aol.mobile.sdk.renderer.viewmodel.VideoVM;
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.ExoPlaybackException;
 import com.google.android.exoplayer2.ExoPlayer;
+import com.google.android.exoplayer2.ExoPlayerFactory;
+import com.google.android.exoplayer2.Format;
 import com.google.android.exoplayer2.PlaybackParameters;
+import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.Timeline;
+import com.google.android.exoplayer2.extractor.DefaultExtractorsFactory;
 import com.google.android.exoplayer2.source.BehindLiveWindowException;
+import com.google.android.exoplayer2.source.ExtractorMediaSource;
 import com.google.android.exoplayer2.source.MediaSource;
+import com.google.android.exoplayer2.source.MergingMediaSource;
+import com.google.android.exoplayer2.source.SingleSampleMediaSource;
+import com.google.android.exoplayer2.source.TrackGroup;
 import com.google.android.exoplayer2.source.TrackGroupArray;
+import com.google.android.exoplayer2.source.hls.HlsMediaSource;
 import com.google.android.exoplayer2.text.Cue;
 import com.google.android.exoplayer2.text.TextRenderer;
+import com.google.android.exoplayer2.trackselection.AdaptiveTrackSelection;
+import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
+import com.google.android.exoplayer2.trackselection.FixedTrackSelection;
+import com.google.android.exoplayer2.trackselection.TrackSelection;
 import com.google.android.exoplayer2.trackselection.TrackSelectionArray;
+import com.google.android.exoplayer2.upstream.DataSource;
+import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter;
+import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
+import com.google.android.exoplayer2.upstream.DefaultHttpDataSourceFactory;
+import com.google.android.exoplayer2.util.MimeTypes;
 
 import java.util.List;
 
 import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
 import static com.aol.mobile.sdk.renderer.VideoRenderer.Listener.Error.CONNECTION;
 import static com.aol.mobile.sdk.renderer.VideoRenderer.Listener.Error.CONTENT;
+import static com.google.android.exoplayer2.util.MimeTypes.APPLICATION_SUBRIP;
+import static com.google.android.exoplayer2.util.Util.getUserAgent;
+import static com.google.android.exoplayer2.util.Util.inferContentType;
 
 class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfaceListener,
-        ExoPlayer.EventListener, OneExoPlayer.VideoListener {
+        ExoPlayer.EventListener, SimpleExoPlayer.VideoListener {
 
     @NonNull
     private final Handler handler = new Handler();
+    @NonNull
+    private final DefaultBandwidthMeter bandwidthMeter = new DefaultBandwidthMeter();
+    @NonNull
+    private final TrackSelection.Factory adaptiveTrackSelectionFactory = new AdaptiveTrackSelection.Factory(bandwidthMeter);
+    @NonNull
+    private final DefaultExtractorsFactory defaultExtractorsFactory = new DefaultExtractorsFactory();
+    @NonNull
+    private final DataSource.Factory dataSourceFactory;
+    @NonNull
+    private final DefaultTrackSelector trackSelector = new DefaultTrackSelector(adaptiveTrackSelectionFactory) {
+        @Override
+        protected TrackSelection selectTextTrack(TrackGroupArray groups, int[][] formatSupport, String preferredTextLanguage, String preferredAudioLanguage, boolean exceedRendererCapabilitiesIfNecessary) {
+            TrackSelection trackSelection = super.selectTextTrack(groups, formatSupport, preferredTextLanguage, preferredAudioLanguage, exceedRendererCapabilitiesIfNecessary);
+
+            if (trackSelection == null && groups.length > 0) {
+                for (int groupIndex = 0; groupIndex < groups.length; groupIndex++) {
+                    TrackGroup trackGroup = groups.get(groupIndex);
+
+                    for (int trackIndex = 0; trackIndex < trackGroup.length; trackIndex++) {
+                        Format format = trackGroup.getFormat(trackIndex);
+
+                        if (MimeTypes.APPLICATION_CEA608.equalsIgnoreCase(format.sampleMimeType)) {
+                            return new FixedTrackSelection(trackGroup, trackIndex);
+                        }
+                    }
+                }
+            }
+
+            return trackSelection;
+        }
+    };
     @Nullable
     protected Listener listener;
     @Nullable
-    private OneExoPlayer exoPlayer;
+    private SimpleExoPlayer exoPlayer;
     @NonNull
     private ProgressTimer progressTimer = new ProgressTimer();
     private boolean isMuted = false;
@@ -59,12 +110,10 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
     private Long duration;
     private boolean shouldPlay;
     private int playbackState;
-
     private int videoWidth = Integer.MIN_VALUE;
     private int videoHeight = Integer.MIN_VALUE;
     private int viewportWidth = Integer.MIN_VALUE;
     private int viewportHeight = Integer.MIN_VALUE;
-
     private boolean scalable = true;
     private boolean maintainAspectRatio = true;
     @Nullable
@@ -75,7 +124,38 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
 
     public ExoVideoRenderer(@NonNull Context context) {
         super(context);
+        DefaultHttpDataSourceFactory httpDataSourceFactory = new DefaultHttpDataSourceFactory(
+                getUserAgent(context, "VideoSDK"), bandwidthMeter, 8000, 8000, true);
+
+        this.dataSourceFactory = new DefaultDataSourceFactory(context, bandwidthMeter, httpDataSourceFactory);
         this.context = context;
+    }
+
+    @NonNull
+    public MediaSource buildMediaSource(@NonNull String videoUriString, @Nullable String subtitleUriString) {
+        Uri videoUri = Uri.parse(videoUriString);
+        MediaSource source;
+
+        switch (inferContentType(videoUri.getLastPathSegment())) {
+            case C.TYPE_HLS:
+                source = new HlsMediaSource(videoUri, dataSourceFactory, handler, null);
+                break;
+
+            default:
+                source = new ExtractorMediaSource(videoUri, dataSourceFactory, defaultExtractorsFactory, handler, null);
+
+                Uri subtitleUri = subtitleUriString == null ? null : Uri.parse(subtitleUriString);
+                if (subtitleUri != null) {
+                    Format textFormat = Format.createTextSampleFormat(null, APPLICATION_SUBRIP, null,
+                            Format.NO_VALUE, C.SELECTION_FLAG_DEFAULT, "en", null);
+                    MediaSource subtitleSource = new SingleSampleMediaSource(subtitleUri, dataSourceFactory,
+                            textFormat, C.TIME_UNSET);
+                    source = new MergingMediaSource(source, subtitleSource);
+                }
+                break;
+        }
+
+        return source;
     }
 
     protected void setRenderer(@NonNull View renderer) {
@@ -113,18 +193,17 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
         this.subtitleUrl = subtitleUrl;
         if (videoUrl == null) return;
 
-        MediaSource source = ExoHelper.buildMediaSource(videoUrl, subtitleUrl, handler, context);
-        updateExoPlayerSource(source);
+        updateExoPlayerSource(buildMediaSource(videoUrl, subtitleUrl));
     }
 
-    private void updateExoPlayerSource(@NonNull MediaSource source) {
-        exoPlayer = ExoHelper.getExoPlayer(context);
+    private void updateExoPlayerSource(@NonNull final MediaSource source) {
+        exoPlayer = ExoPlayerFactory.newSimpleInstance(context, trackSelector);
         exoPlayer.prepare(source);
         exoPlayer.setTextOutput(new TextRenderer.Output() {
             @Override
             public void onCues(@Nullable List<Cue> cues) {
                 if (listener == null) return;
-                if (cues!= null && cues.size() > 0) {
+                if (cues != null && cues.size() > 0) {
                     listener.onSubtitleUpdated(cues.get(0).text);
                 } else {
                     listener.onSubtitleUpdated(null);
@@ -178,7 +257,7 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
         this.maintainAspectRatio = videoVM.isMaintainAspectRatio;
         if (videoVM.videoUrl != null && !videoVM.videoUrl.equals(videoUrl)) {
             playVideo(videoVM.videoUrl, videoVM.subtitleUrl);
-        } else if (videoVM.videoUrl == null && videoVM.videoUrl != videoUrl) {
+        } else if (videoVM.videoUrl == null && videoUrl != null) {
             playVideo(null, null);
         }
 
@@ -311,11 +390,8 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
 
     @Override
     public void onTimelineChanged(Timeline timeline, Object manifest) {
-        if (timeline != null && !timeline.isEmpty()) {
-            isLive = timeline.getWindow(0, new Timeline.Window()).isDynamic;
-        } else {
-            isLive = false;
-        }
+        isLive = timeline != null && !timeline.isEmpty() &&
+                timeline.getWindow(0, new Timeline.Window()).isDynamic;
     }
 
     @Override
@@ -329,13 +405,15 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
             playVideo(videoUrl, subtitleUrl);
             return;
         }
+
         String message = error.getCause() == null ? null : error.getCause().getMessage();
         boolean isConnectionError = hasConnectionError(error.getMessage()) || hasConnectionError(message);
+
         if (isConnectionError && subtitleUrl != null) {
-            subtitleUrl = null;
-            playVideo(videoUrl, subtitleUrl);
+            playVideo(videoUrl, null);
             return;
         }
+
         if (listener != null) {
             if (isConnectionError) {
                 listener.onErrorOccurred(CONNECTION);
@@ -346,8 +424,8 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
     }
 
     private boolean hasConnectionError(@Nullable String message) {
-        if (message == null) return false;
-        return message.contains("Unable to connect to") || message.contains("Response code");
+        return message != null &&
+                (message.contains("Unable to connect to") || message.contains("Response code"));
     }
 
     @Override
@@ -416,15 +494,18 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
     }
 
     @Override
-    public void onVideoSizeChanged(int width, int height) {
+    public void onVideoSizeChanged(int width, int height, int unappliedRotationDegrees, float pixelWidthHeightRatio) {
         videoWidth = width;
         videoHeight = height;
         scaleViewport();
     }
 
-    class ProgressTimer {
-        @NonNull
-        private Handler handler = new Handler();
+    @Override
+    public void onRenderedFirstFrame() {
+
+    }
+
+    private class ProgressTimer {
         @NonNull
         private Runnable action = new Runnable() {
             @Override
