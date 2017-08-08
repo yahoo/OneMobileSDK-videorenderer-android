@@ -523,8 +523,8 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
                         updateDuration();
                     }
                     if (duration != null) {
-                        if (exoPlayer.getPlaybackState() == ExoPlayer.STATE_READY &&
-                                shouldPlay && position <= duration) {
+                        if (exoPlayer.getPlaybackState() == ExoPlayer.STATE_READY && shouldPlay &&
+                                (position <= duration || duration == 0)) {
                             listener.onVideoPositionUpdated(position);
                         }
                         if (position > duration && playbackState != ExoPlayer.STATE_ENDED
