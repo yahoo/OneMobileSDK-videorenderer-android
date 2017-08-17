@@ -27,6 +27,7 @@ import com.google.android.exoplayer2.PlaybackParameters;
 import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.Timeline;
 import com.google.android.exoplayer2.extractor.DefaultExtractorsFactory;
+import com.google.android.exoplayer2.source.AdaptiveMediaSourceEventListener;
 import com.google.android.exoplayer2.source.BehindLiveWindowException;
 import com.google.android.exoplayer2.source.ExtractorMediaSource;
 import com.google.android.exoplayer2.source.MediaSource;
@@ -43,11 +44,13 @@ import com.google.android.exoplayer2.trackselection.FixedTrackSelection;
 import com.google.android.exoplayer2.trackselection.TrackSelection;
 import com.google.android.exoplayer2.trackselection.TrackSelectionArray;
 import com.google.android.exoplayer2.upstream.DataSource;
+import com.google.android.exoplayer2.upstream.DataSpec;
 import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter;
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
 import com.google.android.exoplayer2.upstream.DefaultHttpDataSourceFactory;
 import com.google.android.exoplayer2.util.MimeTypes;
 
+import java.io.IOException;
 import java.util.List;
 
 import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
@@ -138,7 +141,38 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
 
         switch (inferContentType(videoUri.getLastPathSegment())) {
             case C.TYPE_HLS:
-                source = new HlsMediaSource(videoUri, dataSourceFactory, handler, null);
+                source = new HlsMediaSource(videoUri, dataSourceFactory, handler, new AdaptiveMediaSourceEventListener() {
+                    @Override
+                    public void onLoadStarted(DataSpec dataSpec, int i, int i1, Format format, int i2, Object o, long l, long l1, long l2) {
+
+                    }
+
+                    @Override
+                    public void onLoadCompleted(DataSpec dataSpec, int i, int i1, Format format, int i2, Object o, long l, long l1, long l2, long l3, long l4) {
+                        if (listener != null && format != null) {
+                            listener.onHlsBitrateUpdated(format.bitrate);
+                        }
+                    }
+
+                    @Override
+                    public void onLoadCanceled(DataSpec dataSpec, int i, int i1, Format format, int i2, Object o, long l, long l1, long l2, long l3, long l4) {
+
+                    }
+
+                    @Override
+                    public void onLoadError(DataSpec dataSpec, int i, int i1, Format format, int i2, Object o, long l, long l1, long l2, long l3, long l4, IOException e, boolean b) {
+
+                    }
+
+                    @Override
+                    public void onUpstreamDiscarded(int i, long l, long l1) {
+                    }
+
+                    @Override
+                    public void onDownstreamFormatChanged(int i, Format format, int i1, Object o, long l) {
+
+                    }
+                });
                 break;
 
             default:

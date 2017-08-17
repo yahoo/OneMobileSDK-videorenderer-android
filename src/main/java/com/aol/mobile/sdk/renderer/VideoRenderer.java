@@ -99,6 +99,11 @@ public interface VideoRenderer {
          */
         void onSeekPerformed();
 
+        /**
+         * Fired when hls bitrate is updated.
+         */
+        void onHlsBitrateUpdated(long bitrate);
+
         enum Error {
             /**
              * Bad internet or slow, timed out connection error.
