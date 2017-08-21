@@ -62,4 +62,8 @@ public final class RenderersRegistry {
         if (producer == null) throw new RuntimeException("No renderer record found for id:" + id);
         return producer.createRenderer(context);
     }
+
+    public static boolean hasRenderer(@NonNull String renderer) {
+        return registry.containsKey(renderer);
+    }
 }
