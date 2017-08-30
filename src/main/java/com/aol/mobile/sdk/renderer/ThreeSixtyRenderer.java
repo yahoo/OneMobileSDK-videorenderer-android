@@ -38,7 +38,7 @@ class ThreeSixtyRenderer extends ExoVideoRenderer {
     }
 
     @Override
-    public void render(VideoVM videoVM) {
+    public void render(@NonNull VideoVM videoVM) {
         super.render(videoVM);
 
         boolean isSourceChanged;
