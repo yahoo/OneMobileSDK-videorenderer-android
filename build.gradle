@@ -4,6 +4,7 @@
 
 repositories {
     jcenter()
+    google()
 }
 
 buildscript {
