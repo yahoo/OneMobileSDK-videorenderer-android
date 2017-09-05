@@ -11,6 +11,8 @@ import android.view.View;
 
 import com.aol.mobile.sdk.renderer.viewmodel.VideoVM;
 
+import java.util.List;
+
 public interface VideoRenderer {
     /**
      * Sets renderer listener
@@ -24,7 +26,12 @@ public interface VideoRenderer {
      */
     void dispose();
 
-    void render(VideoVM videoVM);
+    /**
+     * Renders video view model
+     *
+     * @param videoVM instance {@link VideoVM}
+     */
+    void render(@NonNull VideoVM videoVM);
 
     /**
      * Gets renderer viewport as android {@link View} instance
@@ -33,7 +40,6 @@ public interface VideoRenderer {
      */
     @NonNull
     View getViewport();
-
 
     interface Listener {
         /**
@@ -91,7 +97,12 @@ public interface VideoRenderer {
          */
         void onErrorOccurred(@NonNull Error error);
 
-
+        /**
+         * Camera direction angles
+         *
+         * @param lng longitude
+         * @param lat latitude
+         */
         void onCameraDirectionChanged(double lng, double lat);
 
         /**
@@ -103,6 +114,14 @@ public interface VideoRenderer {
          * Fired when hls bitrate is updated.
          */
         void onHlsBitrateUpdated(long bitrate);
+
+        /**
+         * Fired when track configuration has changed
+         *
+         * @param audioTrackList list of available audio tracks
+         * @param ccTrackList    list of available cc tracks
+         */
+        void onTrackInfoAvailable(@NonNull List<AudioTrack> audioTrackList, @NonNull List<CcTrack> ccTrackList);
 
         enum Error {
             /**
