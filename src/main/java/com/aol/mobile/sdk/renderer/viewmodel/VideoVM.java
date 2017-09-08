@@ -2,13 +2,13 @@ package com.aol.mobile.sdk.renderer.viewmodel;
 
 import android.support.annotation.Nullable;
 import com.aol.mobile.sdk.renderer.AudioTrack;
-import com.aol.mobile.sdk.renderer.CcTrack;
+import com.aol.mobile.sdk.renderer.TextTrack;
 
 public class VideoVM {
     @Nullable
     public AudioTrack selectedAudioTrack;
     @Nullable
-    public CcTrack selectedCcTrack;
+    public TextTrack selectedTextTrack;
     @Nullable
     public String videoUrl;
     @Nullable
