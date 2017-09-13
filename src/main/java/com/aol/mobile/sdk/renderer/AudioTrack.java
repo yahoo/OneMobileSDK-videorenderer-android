@@ -10,8 +10,11 @@ public final class AudioTrack {
     public final boolean isSelected;
     @Nullable
     final String language;
+    @NonNull
+    final Id id;
 
-    AudioTrack(@Nullable String language, @NonNull String title, boolean isSelected) {
+    AudioTrack(@NonNull Id id, @Nullable String language, @NonNull String title, boolean isSelected) {
+        this.id = id;
         this.language = language;
         this.title = title;
         this.isSelected = isSelected;
@@ -19,6 +22,18 @@ public final class AudioTrack {
 
     @NonNull
     public AudioTrack withSelected(boolean isSelected) {
-        return new AudioTrack(language, title, isSelected);
+        return new AudioTrack(id, language, title, isSelected);
+    }
+
+    final static class Id {
+        final int renderer;
+        final int group;
+        final int track;
+
+        Id(int renderer, int group, int track) {
+            this.renderer = renderer;
+            this.group = group;
+            this.track = track;
+        }
     }
 }

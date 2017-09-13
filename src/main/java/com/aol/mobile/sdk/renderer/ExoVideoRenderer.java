@@ -294,8 +294,19 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
     }
 
     private void switchToAudioTrack(@Nullable AudioTrack audioTrack) {
-        trackSelector.setParameters(trackSelector.getParameters()
-                .withPreferredAudioLanguage(audioTrack == null ? null : audioTrack.language));
+        if (audioTrack == null) return;
+
+        MappingTrackSelector.MappedTrackInfo info = trackSelector.getCurrentMappedTrackInfo();
+        trackSelector.clearSelectionOverrides(audioTrack.id.renderer);
+        trackSelector.setParameters(trackSelector.getParameters().withPreferredAudioLanguage(null));
+
+        if (audioTrack.language == null || audioTrack.language.length() == 0) {
+            TrackGroupArray trackGroups = info.getTrackGroups(audioTrack.id.renderer);
+            SelectionOverride override = new SelectionOverride(selectionFactory, audioTrack.id.group, audioTrack.id.track);
+            trackSelector.setSelectionOverride(audioTrack.id.renderer, trackGroups, override);
+        } else {
+            trackSelector.setParameters(trackSelector.getParameters().withPreferredAudioLanguage(audioTrack.language));
+        }
     }
 
     private void switchToTextTrack(@Nullable TextTrack textTrack) {
@@ -455,14 +466,13 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
                             trackGroups.indexOf(trackSelection.getTrackGroup()) == groupIndex &&
                             trackIndex == trackSelection.getSelectedIndexInTrackGroup();
 
-
                     switch (rendererType) {
                         case C.TRACK_TYPE_AUDIO:
-                            if (!isSelected && format.language == null || format.language.length() == 0) break;
-                            AudioTrack audioTrack = audioTracks.get(format.id);
+                            String key = format.language == null ? format.id : format.language;
+                            AudioTrack audioTrack = audioTracks.get(key);
 
                             if (audioTrack == null) {
-                                audioTrack = new AudioTrack(format.language, format.id, isSelected);
+                                audioTrack = new AudioTrack(new AudioTrack.Id(rendererIndex, groupIndex, trackIndex), format.language, format.id, isSelected);
                             } else {
                                 audioTrack = audioTrack.withSelected(audioTrack.isSelected || isSelected);
                             }
@@ -485,9 +495,22 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
         }
 
         TextTrack.Id id = new TextTrack.Id(textRendererIndex, -1, -1);
+        Collections.sort(textTracks, new Comparator<TextTrack>() {
+            @Override
+            public int compare(TextTrack o1, TextTrack o2) {
+                return o1.title.compareTo(o2.title);
+            }
+        });
         textTracks.addFirst(new TextTrack(id, "None", !hasSelectedCc));
 
-        listener.onTrackInfoAvailable(new LinkedList<>(audioTracks.values()), textTracks);
+        LinkedList<AudioTrack> audioTrackList = new LinkedList<>(audioTracks.values());
+        Collections.sort(audioTrackList, new Comparator<AudioTrack>() {
+            @Override
+            public int compare(AudioTrack o1, AudioTrack o2) {
+                return o1.title.compareTo(o2.title);
+            }
+        });
+        listener.onTrackInfoAvailable(audioTrackList, textTracks);
     }
 
     @Override
