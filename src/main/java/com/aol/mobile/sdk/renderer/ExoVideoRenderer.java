@@ -302,7 +302,7 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
         if (textTrack == null) return;
 
         MappingTrackSelector.MappedTrackInfo info = trackSelector.getCurrentMappedTrackInfo();
-        if (textTrack.id.group < 0 || textTrack.id.track < 0) {
+        if (textTrack.id.group < 0 || textTrack.id.track < 0 || info == null) {
             trackSelector.clearSelectionOverrides(textTrack.id.renderer);
             trackSelector.setRendererDisabled(textTrack.id.renderer, true);
         } else {
