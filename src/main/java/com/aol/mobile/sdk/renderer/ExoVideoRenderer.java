@@ -29,8 +29,7 @@ import com.google.android.exoplayer2.upstream.*;
 import com.google.android.exoplayer2.util.MimeTypes;
 
 import java.io.IOException;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
 import static com.aol.mobile.sdk.renderer.VideoRenderer.Listener.Error.CONNECTION;
@@ -53,7 +52,7 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
     @NonNull
     private final DefaultExtractorsFactory defaultExtractorsFactory = new DefaultExtractorsFactory();
     @NonNull
-    private final TrackSelection.Factory fixedSelectionFactory = new FixedTrackSelection.Factory();
+    private final TrackSelection.Factory selectionFactory = new FixedTrackSelection.Factory();
     @NonNull
     private final DataSource.Factory dataSourceFactory;
     @NonNull
@@ -74,7 +73,7 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
     @Nullable
     private AudioTrack audioTrack;
     @Nullable
-    private CcTrack ccTrack;
+    private TextTrack textTrack;
     @Nullable
     private Long duration;
     private boolean shouldPlay;
@@ -285,27 +284,32 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
 
         if (videoVM.selectedAudioTrack != audioTrack) {
             audioTrack = videoVM.selectedAudioTrack;
-            switchToTrack(audioTrack);
+            switchToAudioTrack(audioTrack);
         }
 
-        if (videoVM.selectedCcTrack != ccTrack) {
-            ccTrack = videoVM.selectedCcTrack;
-            switchToTrack(ccTrack);
+        if (videoVM.selectedTextTrack != textTrack) {
+            textTrack = videoVM.selectedTextTrack;
+            switchToTextTrack(textTrack);
         }
     }
 
-    private void switchToTrack(@Nullable Track track) {
-        if (track != null) {
-            MappingTrackSelector.MappedTrackInfo info = trackSelector.getCurrentMappedTrackInfo();
-            if (track.id.group < 0 || track.id.track < 0) {
-                trackSelector.clearSelectionOverrides(track.id.renderer);
-                trackSelector.setRendererDisabled(track.id.renderer, true);
-            } else {
-                TrackGroupArray trackGroups = info.getTrackGroups(track.id.renderer);
-                SelectionOverride override = new SelectionOverride(fixedSelectionFactory, track.id.group, track.id.track);
-                trackSelector.setRendererDisabled(track.id.renderer, false);
-                trackSelector.setSelectionOverride(track.id.renderer, trackGroups, override);
-            }
+    private void switchToAudioTrack(@Nullable AudioTrack audioTrack) {
+        trackSelector.setParameters(trackSelector.getParameters()
+                .withPreferredAudioLanguage(audioTrack == null ? null : audioTrack.language));
+    }
+
+    private void switchToTextTrack(@Nullable TextTrack textTrack) {
+        if (textTrack == null) return;
+
+        MappingTrackSelector.MappedTrackInfo info = trackSelector.getCurrentMappedTrackInfo();
+        if (textTrack.id.group < 0 || textTrack.id.track < 0) {
+            trackSelector.clearSelectionOverrides(textTrack.id.renderer);
+            trackSelector.setRendererDisabled(textTrack.id.renderer, true);
+        } else {
+            TrackGroupArray trackGroups = info.getTrackGroups(textTrack.id.renderer);
+            SelectionOverride override = new SelectionOverride(selectionFactory, textTrack.id.group, textTrack.id.track);
+            trackSelector.setRendererDisabled(textTrack.id.renderer, false);
+            trackSelector.setSelectionOverride(textTrack.id.renderer, trackGroups, override);
         }
     }
 
@@ -427,16 +431,16 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
 
         final MappingTrackSelector.MappedTrackInfo info = trackSelector.getCurrentMappedTrackInfo();
 
-        List<AudioTrack> audioTracks = new LinkedList<>();
-        LinkedList<CcTrack> ccTracks = new LinkedList<>();
+        HashMap<String, AudioTrack> audioTracks = new HashMap<>();
+        LinkedList<TextTrack> textTracks = new LinkedList<>();
         boolean hasSelectedCc = false;
-        int ccRendererIndex = -1;
+        int textRendererIndex = -1;
 
         for (int rendererIndex = 0; rendererIndex < exoPlayer.getRendererCount(); rendererIndex++) {
             TrackSelection trackSelection = trackSelections.get(rendererIndex);
             TrackGroupArray trackGroups = info.getTrackGroups(rendererIndex);
             int rendererType = exoPlayer.getRendererType(rendererIndex);
-            if (rendererType == C.TRACK_TYPE_TEXT) ccRendererIndex = rendererIndex;
+            if (rendererType == C.TRACK_TYPE_TEXT) textRendererIndex = rendererIndex;
 
             for (int groupIndex = 0; groupIndex < trackGroups.length; groupIndex++) {
                 TrackGroup trackGroup = trackGroups.get(groupIndex);
@@ -451,18 +455,28 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
                             trackGroups.indexOf(trackSelection.getTrackGroup()) == groupIndex &&
                             trackIndex == trackSelection.getSelectedIndexInTrackGroup();
 
-                    Track.Id id = new Track.Id(rendererIndex, groupIndex, trackIndex);
 
                     switch (rendererType) {
                         case C.TRACK_TYPE_AUDIO:
-                            audioTracks.add(new AudioTrack(id, format, isSelected));
+                            if (!isSelected && format.language == null || format.language.length() == 0) break;
+                            AudioTrack audioTrack = audioTracks.get(format.id);
+
+                            if (audioTrack == null) {
+                                audioTrack = new AudioTrack(format.language, format.id, isSelected);
+                            } else {
+                                audioTrack = audioTrack.withSelected(audioTrack.isSelected || isSelected);
+                            }
+
+                            audioTracks.put(format.language, audioTrack);
                             break;
 
                         case C.TRACK_TYPE_TEXT:
                             if (!hasSelectedCc && isSelected) hasSelectedCc = true;
 
                             if (!MimeTypes.APPLICATION_CEA608.equals(format.sampleMimeType) || isSelected) {
-                                ccTracks.add(new CcTrack(id, format, isSelected));
+                                TextTrack.Id id = new TextTrack.Id(rendererIndex, groupIndex, trackIndex);
+                                TextTrack textTrack = new TextTrack(id, format.language, isSelected);
+                                textTracks.add(textTrack);
                             }
                             break;
                     }
@@ -470,14 +484,10 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
             }
         }
 
-        ccTracks.addFirst(new CcTrack(
-                new Track.Id(ccRendererIndex, -1, -1),
-                createTextSampleFormat("None", "", null, -1, hasSelectedCc ? 0 : C.SELECTION_FLAG_DEFAULT, "None", null),
-                !hasSelectedCc
-        ));
+        TextTrack.Id id = new TextTrack.Id(textRendererIndex, -1, -1);
+        textTracks.addFirst(new TextTrack(id, "None", !hasSelectedCc));
 
-
-        listener.onTrackInfoAvailable(audioTracks, ccTracks);
+        listener.onTrackInfoAvailable(new LinkedList<>(audioTracks.values()), textTracks);
     }
 
     @Override

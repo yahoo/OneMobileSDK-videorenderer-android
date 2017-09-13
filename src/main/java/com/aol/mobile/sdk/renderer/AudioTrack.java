@@ -1,21 +1,24 @@
 package com.aol.mobile.sdk.renderer;
 
 import android.support.annotation.NonNull;
-import com.google.android.exoplayer2.Format;
+import android.support.annotation.Nullable;
 
 
-public final class AudioTrack extends Track {
-    public final int channelCount;
-    public final int sampleRate;
+public final class AudioTrack {
+    @NonNull
+    public final String title;
+    public final boolean isSelected;
+    @Nullable
+    final String language;
 
-    AudioTrack(@NonNull Id id, @NonNull Format format, boolean isSelected) {
-        super(id, format, isSelected);
-        this.channelCount = format.channelCount;
-        this.sampleRate = format.sampleRate;
+    AudioTrack(@Nullable String language, @NonNull String title, boolean isSelected) {
+        this.language = language;
+        this.title = title;
+        this.isSelected = isSelected;
     }
 
     @NonNull
     public AudioTrack withSelected(boolean isSelected) {
-        return new AudioTrack(id, format, isSelected);
+        return new AudioTrack(language, title, isSelected);
     }
 }
