@@ -328,6 +328,9 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
             shouldPlay = true;
 
             if (exoPlayer != null && exoPlayer.getPlaybackState() == ExoPlayer.STATE_READY) {
+                if (exoPlayer.isCurrentWindowDynamic() && exoPlayer.isCurrentWindowSeekable()) {
+                    exoPlayer.seekToDefaultPosition();
+                }
                 exoPlayer.setPlayWhenReady(true);
                 progressTimer.start();
                 if (listener != null) {
@@ -439,7 +442,8 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
                 TrackGroup trackGroup = trackGroups.get(groupIndex);
 
                 for (int trackIndex = 0; trackIndex < trackGroup.length; trackIndex++) {
-                    if (info.getTrackFormatSupport(rendererIndex, groupIndex, trackIndex) != FORMAT_HANDLED) continue;
+                    if (info.getTrackFormatSupport(rendererIndex, groupIndex, trackIndex) != FORMAT_HANDLED)
+                        continue;
 
                     Format format = trackGroup.getFormat(trackIndex);
 
