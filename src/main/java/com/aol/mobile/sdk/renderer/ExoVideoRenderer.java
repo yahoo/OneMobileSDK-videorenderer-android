@@ -125,6 +125,9 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
 
                     @Override
                     public void onLoadError(DataSpec dataSpec, int i, int i1, Format format, int i2, Object o, long l, long l1, long l2, long l3, long l4, IOException e, boolean b) {
+                        if (shouldPlay && !exoPlayer.getPlayWhenReady()){
+                            playVideo(videoUrl, ExoVideoRenderer.this.subtitleLang, subtitleUrl);
+                        }
                     }
 
                     @Override
