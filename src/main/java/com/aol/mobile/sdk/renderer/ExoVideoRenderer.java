@@ -41,7 +41,7 @@ import static com.google.android.exoplayer2.util.Util.getUserAgent;
 import static com.google.android.exoplayer2.util.Util.inferContentType;
 
 class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfaceListener,
-        ExoPlayer.EventListener, SimpleExoPlayer.VideoListener {
+        Player.EventListener, SimpleExoPlayer.VideoListener {
 
     @NonNull
     private final Handler handler = new Handler();
@@ -141,7 +141,7 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
                 source = new ExtractorMediaSource(videoUri, dataSourceFactory, defaultExtractorsFactory, handler, null);
                 Uri subtitleUri = subtitleUriString == null ? null : Uri.parse(subtitleUriString);
                 if (subtitleUri != null) {
-                    Format textFormat = createTextSampleFormat(subtitleLang, APPLICATION_SUBRIP, null, C.POSITION_UNSET, C.POSITION_UNSET, subtitleLang, null);
+                    Format textFormat = createTextSampleFormat(subtitleLang, APPLICATION_SUBRIP, null, C.POSITION_UNSET, C.POSITION_UNSET, subtitleLang, null, 9223372036854775807L);
                     MediaSource subtitleSource = new SingleSampleMediaSource(subtitleUri, dataSourceFactory,
                             textFormat, C.TIME_UNSET);
                     source = new MergingMediaSource(source, subtitleSource);
@@ -194,7 +194,7 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
     private void updateExoPlayerSource(@NonNull final MediaSource source) {
         exoPlayer = ExoPlayerFactory.newSimpleInstance(context, trackSelector);
         exoPlayer.prepare(source);
-        exoPlayer.setTextOutput(new TextRenderer.Output() {
+        exoPlayer.addTextOutput(new TextRenderer.Output() {
             @Override
             public void onCues(@Nullable List<Cue> cues) {
                 if (listener == null) return;
@@ -214,7 +214,7 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
         }
 
         exoPlayer.addListener(this);
-        exoPlayer.setVideoListener(this);
+        exoPlayer.addVideoListener(this);
         exoPlayer.setVolume(isMuted ? 0f : 1f);
         exoPlayer.setVideoSurface(surface);
         exoPlayer.setPlayWhenReady(shouldPlay);
@@ -328,7 +328,7 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
         if (shouldPlay) {
             shouldPlay = false;
 
-            if (exoPlayer != null && exoPlayer.getPlaybackState() == ExoPlayer.STATE_READY) {
+            if (exoPlayer != null && exoPlayer.getPlaybackState() == Player.STATE_READY) {
                 exoPlayer.setPlayWhenReady(false);
                 progressTimer.stop();
                 if (listener != null) {
@@ -342,7 +342,7 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
         if (!shouldPlay) {
             shouldPlay = true;
 
-            if (exoPlayer != null && exoPlayer.getPlaybackState() == ExoPlayer.STATE_READY) {
+            if (exoPlayer != null && exoPlayer.getPlaybackState() == Player.STATE_READY) {
                 if (exoPlayer.isCurrentWindowDynamic() && exoPlayer.isCurrentWindowSeekable()) {
                     exoPlayer.seekToDefaultPosition();
                 }
@@ -394,7 +394,7 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
             assert exoPlayer != null;
 
             switch (playbackState) {
-                case ExoPlayer.STATE_READY:
+                case Player.STATE_READY:
                     progressTimer.start();
                     exoPlayer.setPlayWhenReady(shouldPlay);
                     if (listener != null) {
@@ -402,8 +402,8 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
                     }
                     break;
 
-                case ExoPlayer.STATE_IDLE:
-                case ExoPlayer.STATE_BUFFERING:
+                case Player.STATE_IDLE:
+                case Player.STATE_BUFFERING:
                     progressTimer.stop();
                     exoPlayer.setPlayWhenReady(false);
                     if (listener != null) {
@@ -411,7 +411,7 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
                     }
                     break;
 
-                case ExoPlayer.STATE_ENDED:
+                case Player.STATE_ENDED:
                     if (!exoPlayer.isCurrentWindowDynamic()) {
                         exoPlayer.setPlayWhenReady(false);
                         progressTimer.stop();
@@ -430,6 +430,10 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
                     break;
             }
         }
+    }
+
+    @Override
+    public void onRepeatModeChanged(int i) {
     }
 
     @Override
@@ -592,7 +596,6 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
     public void onVideoSurfaceResized(int width, int height) {
         viewportWidth = width;
         viewportHeight = height;
-
         scaleViewport();
     }
 
@@ -636,13 +639,13 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
                     if (duration == null) {
                         updateDuration();
                     }
-                    if (duration != null && exoPlayer.getPlaybackState() == ExoPlayer.STATE_READY
+                    if (duration != null && exoPlayer.getPlaybackState() == Player.STATE_READY
                             && shouldPlay && (position <= duration || duration == 0)) {
                         listener.onVideoPositionUpdated(position);
                     }
-                    if (duration != null && position > duration && playbackState != ExoPlayer.STATE_ENDED
+                    if (duration != null && position > duration && playbackState != Player.STATE_ENDED
                             && exoPlayer.getPlayWhenReady()) {
-                        onPlayerStateChanged(shouldPlay, ExoPlayer.STATE_ENDED);
+                        onPlayerStateChanged(shouldPlay, Player.STATE_ENDED);
                     }
                 }
                 handler.postDelayed(action, 200);
