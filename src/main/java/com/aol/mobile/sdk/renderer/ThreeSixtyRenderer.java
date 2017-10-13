@@ -32,13 +32,8 @@ class ThreeSixtyRenderer extends ExoVideoRenderer {
     }
 
     @Override
-    public void setListener(@Nullable Listener listener) {
-        super.setListener(listener);
-        cameraOrientationModule.setListener(listener);
-    }
-
-    @Override
     public void render(@NonNull VideoVM videoVM) {
+        cameraOrientationModule.setCallbacks(videoVM.callbacks);
         super.render(videoVM);
 
         boolean isSourceChanged;

@@ -2,46 +2,52 @@ package com.aol.mobile.sdk.renderer;
 
 
 import android.content.Context;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.PackageManager.NameNotFoundException;
+import android.os.Bundle;
 import android.support.annotation.NonNull;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 
+import static android.content.pm.PackageManager.GET_META_DATA;
+
 public final class RenderersRegistry {
-    public static final String FLAT_RENDERER = "com.onemobilesdk.videorenderer.flat@" + BuildConfig.VERSION_NAME;
-    public static final String THREE_SIXTY_RENDERER = "com.onemobilesdk.videorenderer.360@" + BuildConfig.VERSION_NAME;
-    public static final String FISH_EYE_RENDERER = "com.onemobilesdk.videorenderer.fisheye@" + BuildConfig.VERSION_NAME;
+    private static final String RENDERER_PREFIX = "com.onemobilesdk.videorenderer";
+
+    public static final String FLAT_RENDERER = BuildConfig.FLAT_RENDERER;
 
     @NonNull
-    static final HashMap<String, VideoRenderer.Producer> registry = new HashMap<>();
+    private final HashMap<String, VideoRenderer.Producer> registry = new HashMap<>();
 
-    static {
-        registerRenderer(FLAT_RENDERER, new VideoRenderer.Producer() {
-            @NonNull
-            @Override
-            public VideoRenderer createRenderer(@NonNull Context context) {
-                return new ExoFlatRenderer(context);
-            }
-        });
+    @NonNull
+    private VideoRenderer.Producer getProducer(@NonNull String className) {
+        Class<?> producerClass;
 
-        registerRenderer(THREE_SIXTY_RENDERER, new VideoRenderer.Producer() {
-            @NonNull
-            @Override
-            public VideoRenderer createRenderer(@NonNull Context context) {
-                return new ExoSphereRenderer(context);
-            }
-        });
+        try {
+            producerClass = Class.forName(className);
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException("Class from metadata not found", e);
+        }
 
-        registerRenderer(FISH_EYE_RENDERER, new VideoRenderer.Producer() {
-            @NonNull
-            @Override
-            public VideoRenderer createRenderer(@NonNull Context context) {
-                return new ExoFishEyeRenderer(context);
-            }
-        });
+        Object producer;
+
+        try {
+            producer = producerClass.newInstance();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        if (producer instanceof VideoRenderer.Producer) {
+            return ((VideoRenderer.Producer) producer);
+        }
+
+        throw new RuntimeException(className + " is not instance of VideoRenderer.Producer");
     }
 
-    public static void registerRenderer(@NonNull String rendererId, @NonNull VideoRenderer.Producer producer) {
+    private void registerRenderer(@NonNull String rendererId, @NonNull VideoRenderer.Producer producer) {
         if (rendererId.length() == 0)
             throw new IllegalArgumentException("Renderer id must be in format <name@version>");
 
@@ -51,19 +57,48 @@ public final class RenderersRegistry {
         registry.put(rendererId, producer);
     }
 
-    @NonNull
-    public static Collection<String> listRenderers() {
-        return registry.keySet();
+    private static Bundle getMetaBundle(@NonNull Context context) {
+        PackageManager packageManager = context.getPackageManager();
+        String packageName = context.getPackageName();
+        ApplicationInfo info;
+
+        try {
+            info = packageManager.getApplicationInfo(packageName, GET_META_DATA);
+        } catch (NameNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+
+        if (info.metaData == null)
+            throw new RuntimeException("No renderers metadata found in AndroidManifest");
+
+        return info.metaData;
+    }
+
+    public RenderersRegistry(@NonNull Context context) {
+        Bundle metaData = getMetaBundle(context);
+
+        for (String key : metaData.keySet()) {
+            String producerClass = metaData.getString(key);
+
+            if (key.startsWith(RENDERER_PREFIX) && producerClass != null) {
+                registerRenderer(key, getProducer(producerClass));
+            }
+        }
     }
 
     @NonNull
-    public static VideoRenderer getRenderer(@NonNull String id, @NonNull Context context) {
+    public Collection<String> listRenderersId() {
+        return Collections.unmodifiableSet(registry.keySet());
+    }
+
+    @NonNull
+    public VideoRenderer getRenderer(@NonNull String id, @NonNull Context context) {
         VideoRenderer.Producer producer = registry.get(id);
         if (producer == null) throw new RuntimeException("No renderer record found for id:" + id);
         return producer.createRenderer(context);
     }
 
-    public static boolean hasRenderer(@NonNull String renderer) {
+    public boolean hasRenderer(@NonNull String renderer) {
         return registry.containsKey(renderer);
     }
 }

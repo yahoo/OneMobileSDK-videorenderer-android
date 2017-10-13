@@ -2,20 +2,22 @@ package com.aol.mobile.sdk.renderer.sensor;
 
 import android.support.annotation.Nullable;
 
-import com.aol.mobile.sdk.renderer.VideoRenderer;
+import com.aol.mobile.sdk.renderer.viewmodel.VideoVM;
 
 import static com.aol.mobile.sdk.renderer.utils.AngleHelper.asPiMinusPiRange;
 
 public final class CameraOrientationModule {
     @Nullable
-    private VideoRenderer.Listener listener;
+    private VideoVM.Callbacks callbacks;
     @Nullable
     private Camera camera;
     @Nullable
     private Device center;
 
-    public void setListener(@Nullable VideoRenderer.Listener listener) {
-        this.listener = listener;
+    public void setCallbacks(@Nullable VideoVM.Callbacks callbacks) {
+        if (this.callbacks != callbacks) {
+            this.callbacks = callbacks;
+        }
     }
 
     public void updateCameraPosition(double longitude, double latitude, boolean isCentered) {
@@ -45,12 +47,12 @@ public final class CameraOrientationModule {
             }
         }
 
-        if (listener != null && camera != null) {
+        if (callbacks != null && camera != null) {
             double longitude = asPiMinusPiRange(center.azim - azimuth);
             double latitude = asPiMinusPiRange(center.roll - roll);
 
             camera = new Camera(longitude, latitude);
-            listener.onCameraDirectionChanged(camera.lng, camera.lat);
+            callbacks.onCameraDirectionChanged(camera.lng, camera.lat);
         }
     }
 
