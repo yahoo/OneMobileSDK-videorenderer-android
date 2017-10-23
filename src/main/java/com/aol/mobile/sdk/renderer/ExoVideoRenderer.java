@@ -289,6 +289,11 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
             playVideo(null, null, null);
         }
 
+        Long seekPos = videoVM.seekPosition;
+        if (seekPos != null) {
+            seekTo(seekPos);
+        }
+
         if (videoVM.shouldPlay) {
             resumePlayback();
         } else {
@@ -297,11 +302,6 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
 
         if (streamRenderer instanceof GlEsRendererView) {
             ((GlEsRendererView) streamRenderer).setCameraOrientation(videoVM.longitude, videoVM.latitude);
-        }
-
-        Long seekPos = videoVM.seekPosition;
-        if (seekPos != null) {
-            seekTo(seekPos);
         }
 
         if (videoVM.isMuted != isMuted) {
