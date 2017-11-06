@@ -279,7 +279,9 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
     }
 
     public void render(@NonNull VideoVM videoVM) {
-        renderCallbacks(videoVM.callbacks);
+        if (videoVM.callbacks != null) {
+            renderCallbacks(videoVM.callbacks);
+        }
 
         this.scalable = videoVM.isScalable;
         this.maintainAspectRatio = videoVM.isMaintainAspectRatio;
