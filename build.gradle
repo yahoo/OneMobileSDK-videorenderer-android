@@ -3,33 +3,16 @@
  */
 
 repositories {
-    jcenter()
     google()
+    jcenter()
 }
 
 buildscript {
     apply from: 'https://raw.githubusercontent.com/aol-public/OneMobileSDK-tools-android/master/env-props.gradle'
 
-    ext {
-        // Android build config constants
-        BUILD_CONFIG_CONSTS = [
-                'FLAT_RENDERER'       : "com.onemobilesdk.videorenderer.flat@${GIT_BASED_VERSION}",
-                'THREE_SIXTY_RENDERER': "com.onemobilesdk.videorenderer.360@${GIT_BASED_VERSION}",
-                'FISH_EYE_RENDERER'   : "com.onemobilesdk.videorenderer.fisheye@${GIT_BASED_VERSION}"
-        ]
-
-        // Javadoc configuration
-        JAVADOC_TITLE = "OneMobileSDK stream renderer javadoc"
-
-        // Maven
-        GROUP_ID = 'com.aol.one.publishers.android'
-        ARTIFACT_ID = 'renderer'
-        LIBRARY_VERSION = GIT_BASED_VERSION
-    }
-
     repositories {
-        jcenter()
         google()
+        jcenter()
     }
 
     dependencies {
@@ -40,16 +23,9 @@ buildscript {
     }
 }
 
-apply from: 'https://raw.githubusercontent.com/aol-public/OneMobileSDK-tools-android/master/android.gradle'
-apply from: 'https://raw.githubusercontent.com/aol-public/OneMobileSDK-tools-android/master/javadoc.gradle'
-apply from: 'https://raw.githubusercontent.com/aol-public/OneMobileSDK-tools-android/master/sources.gradle'
-apply from: 'https://raw.githubusercontent.com/aol-public/OneMobileSDK-tools-android/master/github-maven.gradle'
-
-dependencies {
-    implementation 'com.google.android.exoplayer:exoplayer-core:r2.5.2'
-    implementation 'com.google.android.exoplayer:exoplayer-hls:r2.5.2'
-
-    testImplementation "org.jetbrains.kotlin:kotlin-test-junit:$KOTLIN_VERSION"
-    testImplementation 'org.assertj:assertj-core:2.6.0'
-    testImplementation 'org.mockito:mockito-core:2.8.47'
+allprojects {
+    repositories {
+        google()
+        jcenter()
+    }
 }
