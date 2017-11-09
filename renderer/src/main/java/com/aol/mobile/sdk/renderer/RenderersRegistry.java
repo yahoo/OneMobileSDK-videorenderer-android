@@ -78,7 +78,8 @@ public final class RenderersRegistry {
         Bundle metaData = getMetaBundle(context);
 
         for (String key : metaData.keySet()) {
-            String producerClass = metaData.getString(key);
+            Object value = metaData.get(key);
+            String producerClass = value instanceof String ? (String) value : null;
 
             if (key.startsWith(RENDERER_PREFIX) && producerClass != null) {
                 registerRenderer(key, getProducer(producerClass));
