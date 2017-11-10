@@ -3,6 +3,7 @@ package com.aol.mobile.sdk.renderer;
 
 import android.content.Context;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.view.View;
 
 import com.aol.mobile.sdk.renderer.internal.FlatRendererView;
@@ -55,11 +56,13 @@ public final class ExoFlatRenderer extends ExoVideoRenderer {
         }
     }
 
+    @Nullable
     private CastRenderer getCastRenderer(@NonNull Context context) {
         try {
             Class castRendererClass = Class.forName("com.aol.mobile.sdk.chromecast.CastRendererImpl");
-            Constructor<?> constructor = castRendererClass.getConstructor(Context.class);
-            return (CastRenderer) constructor.newInstance(context);
+            @SuppressWarnings("unchecked")
+            Constructor<CastRenderer> constructor = castRendererClass.getConstructor(Context.class);
+            return constructor.newInstance(context);
         } catch (Exception e) {
             e.printStackTrace();
         }
