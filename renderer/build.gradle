@@ -28,6 +28,13 @@ dependencies {
     implementation "com.google.android.exoplayer:exoplayer-core:r2.5.2"
     implementation "com.google.android.exoplayer:exoplayer-hls:r2.5.2"
 
+    // Chromecast
+    if (CI) {
+        compileOnly "com.aol.one.publishers.android:chromecast:1.0"
+    } else {
+        compileOnly project(':chromecast')
+    }
+
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit:$KOTLIN_VERSION"
     testImplementation "org.assertj:assertj-core:2.6.0"
     testImplementation "org.mockito:mockito-core:2.8.47"
