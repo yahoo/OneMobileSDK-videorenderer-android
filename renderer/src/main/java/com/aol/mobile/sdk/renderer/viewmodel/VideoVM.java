@@ -33,6 +33,7 @@ public class VideoVM {
     public double latitude;
     public boolean isLive;
     public boolean isCasting;
+    public boolean isActive;
     @Nullable
     public Callbacks callbacks;
 
