@@ -30,7 +30,7 @@ dependencies {
 
     // Chromecast
     if (CI) {
-        compileOnly "com.aol.one.publishers.android:chromecast:1.0"
+        compileOnly "com.aol.one.publishers.android:chromecast:1.4-SNAPSHOT"
     } else {
         compileOnly project(':chromecast')
     }
