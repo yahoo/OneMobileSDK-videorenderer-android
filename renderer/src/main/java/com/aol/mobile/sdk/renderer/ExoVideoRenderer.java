@@ -474,6 +474,10 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
     }
 
     @Override
+    public void onShuffleModeEnabledChanged(boolean shuffleModeEnabled) {
+    }
+
+    @Override
     public void onTimelineChanged(Timeline timeline, Object manifest) {
     }
 
@@ -578,17 +582,21 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
         }
     }
 
+    @Override
+    public void onPositionDiscontinuity(int reason) {
+    }
+
     private boolean hasConnectionError(@Nullable String message) {
         return message != null &&
                 (message.contains("Unable to connect to") || message.contains("Response code"));
     }
 
     @Override
-    public void onPositionDiscontinuity() {
+    public void onPlaybackParametersChanged(PlaybackParameters playbackParameters) {
     }
 
     @Override
-    public void onPlaybackParametersChanged(PlaybackParameters playbackParameters) {
+    public void onSeekProcessed() {
     }
 
     @Override
@@ -656,7 +664,6 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
 
     @Override
     public void onRenderedFirstFrame() {
-
     }
 
     private class ProgressTimer {
