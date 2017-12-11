@@ -6,7 +6,6 @@ package com.aol.mobile.sdk.renderer;
 
 import android.content.Context;
 import android.support.annotation.NonNull;
-import android.view.View;
 
 import com.aol.mobile.sdk.renderer.viewmodel.VideoVM;
 
@@ -22,14 +21,6 @@ public interface VideoRenderer {
      * Disposes all resources
      */
     void dispose();
-
-    /**
-     * Gets renderer viewport as android {@link View} instance
-     *
-     * @return android {@link View} port
-     */
-    @NonNull
-    View getViewport();
 
     interface Producer {
         @NonNull

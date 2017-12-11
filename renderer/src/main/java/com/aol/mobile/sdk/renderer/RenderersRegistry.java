@@ -15,12 +15,40 @@ import java.util.HashMap;
 import static android.content.pm.PackageManager.GET_META_DATA;
 
 public final class RenderersRegistry {
-    private static final String RENDERER_PREFIX = "com.onemobilesdk.videorenderer";
-
     public static final String FLAT_RENDERER = BuildConfig.FLAT_RENDERER;
-
+    private static final String RENDERER_PREFIX = "com.onemobilesdk.videorenderer";
     @NonNull
     private final HashMap<String, VideoRenderer.Producer> registry = new HashMap<>();
+
+    public RenderersRegistry(@NonNull Context context) {
+        Bundle metaData = getMetaBundle(context);
+
+        for (String key : metaData.keySet()) {
+            Object value = metaData.get(key);
+            String producerClass = value instanceof String ? (String) value : null;
+
+            if (key.startsWith(RENDERER_PREFIX) && producerClass != null) {
+                registerRenderer(key, getProducer(producerClass));
+            }
+        }
+    }
+
+    private static Bundle getMetaBundle(@NonNull Context context) {
+        PackageManager packageManager = context.getPackageManager();
+        String packageName = context.getPackageName();
+        ApplicationInfo info;
+
+        try {
+            info = packageManager.getApplicationInfo(packageName, GET_META_DATA);
+        } catch (NameNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+
+        if (info.metaData == null)
+            throw new RuntimeException("No renderers metadata found in AndroidManifest");
+
+        return info.metaData;
+    }
 
     @NonNull
     private VideoRenderer.Producer getProducer(@NonNull String className) {
@@ -55,36 +83,6 @@ public final class RenderersRegistry {
             throw new IllegalArgumentException("Renderer id must be in format <name@version>");
 
         registry.put(rendererId, producer);
-    }
-
-    private static Bundle getMetaBundle(@NonNull Context context) {
-        PackageManager packageManager = context.getPackageManager();
-        String packageName = context.getPackageName();
-        ApplicationInfo info;
-
-        try {
-            info = packageManager.getApplicationInfo(packageName, GET_META_DATA);
-        } catch (NameNotFoundException e) {
-            throw new RuntimeException(e);
-        }
-
-        if (info.metaData == null)
-            throw new RuntimeException("No renderers metadata found in AndroidManifest");
-
-        return info.metaData;
-    }
-
-    public RenderersRegistry(@NonNull Context context) {
-        Bundle metaData = getMetaBundle(context);
-
-        for (String key : metaData.keySet()) {
-            Object value = metaData.get(key);
-            String producerClass = value instanceof String ? (String) value : null;
-
-            if (key.startsWith(RENDERER_PREFIX) && producerClass != null) {
-                registerRenderer(key, getProducer(producerClass));
-            }
-        }
     }
 
     @NonNull

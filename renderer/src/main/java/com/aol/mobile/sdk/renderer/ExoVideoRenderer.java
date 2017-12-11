@@ -622,12 +622,6 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
         }
     }
 
-    @NonNull
-    @Override
-    public View getViewport() {
-        return this;
-    }
-
     @Override
     public void onVideoSurfaceAvailable(@NonNull final Surface surface) {
         this.surface = surface;
