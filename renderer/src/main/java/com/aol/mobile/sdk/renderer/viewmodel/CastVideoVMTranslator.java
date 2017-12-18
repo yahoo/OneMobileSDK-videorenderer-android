@@ -48,6 +48,7 @@ public class CastVideoVMTranslator {
         castVideoVM.shouldPlay = videoVM.shouldPlay;
         castVideoVM.isLive = videoVM.isLive;
         castVideoVM.isActive = videoVM.isActive;
+        castVideoVM.isCasting = videoVM.isCasting;
         callbacks = videoVM.callbacks;
         return castVideoVM;
     }
