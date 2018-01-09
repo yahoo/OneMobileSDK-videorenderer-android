@@ -26,6 +26,7 @@ public final class TextTrack {
     @NonNull
     public final String title;
     public final boolean isSelected;
+    public final boolean isEmpty;
     @NonNull
     final Id id;
 
@@ -33,6 +34,7 @@ public final class TextTrack {
         this.id = id;
         this.title = title;
         this.isSelected = isSelected;
+        this.isEmpty = id.group == -1 && id.track == -1;
     }
 
     @NonNull
