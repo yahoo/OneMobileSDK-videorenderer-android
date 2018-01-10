@@ -54,6 +54,7 @@ public class VideoVM {
     public boolean isLive;
     public boolean isCasting;
     public boolean isActive;
+    public boolean isAd;
     @Nullable
     public Callbacks callbacks;
 
