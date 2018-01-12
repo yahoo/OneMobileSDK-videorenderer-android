@@ -50,7 +50,7 @@ dependencies {
     implementation "com.google.android.exoplayer:exoplayer-hls:2.6.0"
 
     // Chromecast
-    compileOnly "com.aol.one.publishers.android:chromecast:1.5-SNAPSHOT"
+    compileOnly "com.aol.one.publishers.android:chromecast:1.6-SNAPSHOT"
 
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit:$KOTLIN_VERSION"
     testImplementation "org.assertj:assertj-core:3.3.0"
