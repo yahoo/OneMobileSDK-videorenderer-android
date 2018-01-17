@@ -117,12 +117,7 @@ public final class ExoFlatRenderer extends ExoVideoRenderer {
                 videoVM.seekPosition = videoVM.currentPosition;
             }
             castRenderer = null;
-            new Handler().post(new Runnable() {
-                @Override
-                public void run() {
-                    OneCastManager.stopCasting(getContext());
-                }
-            });
+            stopCasting();
         }
     }
 
@@ -135,7 +130,16 @@ public final class ExoFlatRenderer extends ExoVideoRenderer {
     public void dispose() {
         super.dispose();
         if (castRenderer != null) {
-            OneCastManager.stopCasting(getContext());
+            stopCasting();
         }
+    }
+
+    private void stopCasting(){
+        new Handler().post(new Runnable() {
+            @Override
+            public void run() {
+                OneCastManager.stopCasting(getContext());
+            }
+        });
     }
 }
