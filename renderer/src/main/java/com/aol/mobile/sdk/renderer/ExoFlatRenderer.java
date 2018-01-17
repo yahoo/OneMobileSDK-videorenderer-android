@@ -33,12 +33,51 @@ import com.aol.mobile.sdk.renderer.internal.FlatRendererView;
 import com.aol.mobile.sdk.renderer.viewmodel.CastVideoVMTranslator;
 import com.aol.mobile.sdk.renderer.viewmodel.VideoVM;
 
+import java.util.List;
+
 import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
 
 public final class ExoFlatRenderer extends ExoVideoRenderer {
     private CastRenderer castRenderer;
     private CastVideoVMTranslator translator;
     private View flatRendererView;
+    private VideoVM.Callbacks emptyCallbacks = new VideoVM.Callbacks() {
+        @Override
+        public void onSubtitleUpdated(@Nullable CharSequence subtitle) {}
+
+        @Override
+        public void onDurationReceived(long duration) {}
+
+        @Override
+        public void onVideoPositionUpdated(long position) {}
+
+        @Override
+        public void onVideoBufferUpdated(int bufferedPercentage) {}
+
+        @Override
+        public void onViewportResized(int viewWidth, int viewHeight) {}
+
+        @Override
+        public void onVideoPlaybackFlagUpdated(boolean isActuallyPlaying) {}
+
+        @Override
+        public void onVideoEnded() {}
+
+        @Override
+        public void onErrorOccurred(@NonNull Error error) {}
+
+        @Override
+        public void onCameraDirectionChanged(double lng, double lat) {}
+
+        @Override
+        public void onSeekPerformed() {}
+
+        @Override
+        public void onHlsBitrateUpdated(long bitrate) {}
+
+        @Override
+        public void onTrackInfoAvailable(@NonNull List<AudioTrack> audioTrackList, @NonNull List<TextTrack> textTrackList) {}
+    };
 
     public ExoFlatRenderer(@NonNull Context context) {
         super(context);
@@ -56,6 +95,7 @@ public final class ExoFlatRenderer extends ExoVideoRenderer {
         if (castRenderer != null && translator != null) {
             castRenderer.render(translator.translate(videoVM));
             videoVM.shouldPlay = false;
+            videoVM.callbacks = emptyCallbacks;
         }
         super.render(videoVM);
     }
