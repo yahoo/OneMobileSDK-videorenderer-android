@@ -21,12 +21,14 @@
 package com.aol.mobile.sdk.renderer;
 
 import android.content.Context;
+import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.view.View;
 
 import com.aol.mobile.sdk.chromecast.CastRenderer;
 import com.aol.mobile.sdk.chromecast.CastRendererImpl;
+import com.aol.mobile.sdk.chromecast.OneCastManager;
 import com.aol.mobile.sdk.renderer.internal.FlatRendererView;
 import com.aol.mobile.sdk.renderer.viewmodel.CastVideoVMTranslator;
 import com.aol.mobile.sdk.renderer.viewmodel.VideoVM;
@@ -75,11 +77,25 @@ public final class ExoFlatRenderer extends ExoVideoRenderer {
                 videoVM.seekPosition = videoVM.currentPosition;
             }
             castRenderer = null;
+            new Handler().post(new Runnable() {
+                @Override
+                public void run() {
+                    OneCastManager.stopCasting(getContext());
+                }
+            });
         }
     }
 
     @Nullable
     private CastRenderer getCastRenderer(@NonNull Context context) {
         return new CastRendererImpl(context);
+    }
+
+    @Override
+    public void dispose() {
+        super.dispose();
+        if (castRenderer != null) {
+            OneCastManager.stopCasting(getContext());
+        }
     }
 }
