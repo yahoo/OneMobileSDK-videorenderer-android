@@ -42,18 +42,17 @@ import com.google.android.exoplayer2.PlaybackParameters;
 import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.Timeline;
-import com.google.android.exoplayer2.extractor.DefaultExtractorsFactory;
-import com.google.android.exoplayer2.source.AdaptiveMediaSourceEventListener;
 import com.google.android.exoplayer2.source.BehindLiveWindowException;
 import com.google.android.exoplayer2.source.ExtractorMediaSource;
 import com.google.android.exoplayer2.source.MediaSource;
+import com.google.android.exoplayer2.source.MediaSourceEventListener;
 import com.google.android.exoplayer2.source.MergingMediaSource;
 import com.google.android.exoplayer2.source.SingleSampleMediaSource;
 import com.google.android.exoplayer2.source.TrackGroup;
 import com.google.android.exoplayer2.source.TrackGroupArray;
 import com.google.android.exoplayer2.source.hls.HlsMediaSource;
 import com.google.android.exoplayer2.text.Cue;
-import com.google.android.exoplayer2.text.TextRenderer;
+import com.google.android.exoplayer2.text.TextOutput;
 import com.google.android.exoplayer2.trackselection.AdaptiveTrackSelection;
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
 import com.google.android.exoplayer2.trackselection.FixedTrackSelection;
@@ -94,13 +93,15 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
     @NonNull
     private final TrackSelection.Factory adaptiveTrackSelectionFactory = new AdaptiveTrackSelection.Factory(bandwidthMeter);
     @NonNull
-    private final DefaultExtractorsFactory defaultExtractorsFactory = new DefaultExtractorsFactory();
-    @NonNull
     private final TrackSelection.Factory selectionFactory = new FixedTrackSelection.Factory();
     @NonNull
-    private final DataSource.Factory dataSourceFactory;
-    @NonNull
     private final DefaultTrackSelector trackSelector = new DefaultTrackSelector(adaptiveTrackSelectionFactory);
+    @NonNull
+    private final ExtractorMediaSource.Factory mediaFactory;
+    @NonNull
+    private final HlsMediaSource.Factory hlsMediaFactory;
+    @NonNull
+    private final SingleSampleMediaSource.Factory srtMediaFactory;
     @Nullable
     protected VideoVM.Callbacks callbacks;
     @Nullable
@@ -138,9 +139,14 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
     public ExoVideoRenderer(@NonNull Context context) {
         super(context);
         DefaultHttpDataSourceFactory httpDataSourceFactory = new DefaultHttpDataSourceFactory(
-                getUserAgent(context, "VideoSDK"), bandwidthMeter, 8000, 8000, true);
+                getUserAgent(context, "VideoSDK"), bandwidthMeter,
+                8000, 8000, true);
 
-        this.dataSourceFactory = new DefaultDataSourceFactory(context, bandwidthMeter, httpDataSourceFactory);
+        DataSource.Factory dataSourceFactory =
+                new DefaultDataSourceFactory(context, bandwidthMeter, httpDataSourceFactory);
+        this.hlsMediaFactory = new HlsMediaSource.Factory(dataSourceFactory);
+        this.mediaFactory = new ExtractorMediaSource.Factory(dataSourceFactory);
+        this.srtMediaFactory = new SingleSampleMediaSource.Factory(dataSourceFactory);
         this.context = context;
     }
 
@@ -151,7 +157,7 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
 
         switch (inferContentType(videoUri.getLastPathSegment())) {
             case C.TYPE_HLS:
-                source = new HlsMediaSource(videoUri, dataSourceFactory, handler, new AdaptiveMediaSourceEventListener() {
+                source = hlsMediaFactory.createMediaSource(videoUri, handler, new MediaSourceEventListener() {
                     @Override
                     public void onLoadStarted(DataSpec dataSpec, int i, int i1, Format format, int i2, Object o, long l, long l1, long l2) {
                     }
@@ -185,12 +191,11 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
                 break;
 
             default:
-                source = new ExtractorMediaSource(videoUri, dataSourceFactory, defaultExtractorsFactory, handler, null);
+                source = mediaFactory.createMediaSource(videoUri, handler, null);
                 Uri subtitleUri = subtitleUriString == null ? null : Uri.parse(subtitleUriString);
                 if (subtitleUri != null) {
                     Format textFormat = createTextSampleFormat(subtitleLang, APPLICATION_SUBRIP, null, C.POSITION_UNSET, C.POSITION_UNSET, subtitleLang, null, 9223372036854775807L);
-                    MediaSource subtitleSource = new SingleSampleMediaSource(subtitleUri, dataSourceFactory,
-                            textFormat, C.TIME_UNSET);
+                    MediaSource subtitleSource = srtMediaFactory.createMediaSource(subtitleUri, textFormat, C.TIME_UNSET);
                     source = new MergingMediaSource(source, subtitleSource);
                 }
                 break;
@@ -234,7 +239,7 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
     private void updateExoPlayerSource(@NonNull final MediaSource source) {
         exoPlayer = ExoPlayerFactory.newSimpleInstance(context, trackSelector);
         exoPlayer.prepare(source);
-        exoPlayer.addTextOutput(new TextRenderer.Output() {
+        exoPlayer.addTextOutput(new TextOutput() {
             @Override
             public void onCues(@Nullable List<Cue> cues) {
                 if (callbacks == null) return;
@@ -711,7 +716,7 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
             action.run();
         }
 
-        public void stop() {
+        void stop() {
             handler.removeCallbacks(action);
         }
     }
