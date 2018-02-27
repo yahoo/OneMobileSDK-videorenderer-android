@@ -28,12 +28,15 @@ import android.content.pm.PackageManager.NameNotFoundException;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 
+import com.aol.mobile.sdk.annotations.PublicApi;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 
 import static android.content.pm.PackageManager.GET_META_DATA;
 
+@PublicApi
 public final class RenderersRegistry {
     public static final String FLAT_RENDERER = BuildConfig.FLAT_RENDERER;
     private static final String RENDERER_PREFIX = "com.onemobilesdk.videorenderer";
