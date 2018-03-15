@@ -38,3 +38,4 @@ proguard/
 captures/
 *.DS_Store
 /src/main/java/com/aol/mobile/sdk/player/metrics/pixel/TrackingPixelsGenerator.java
+renderer/proguard-classes.pro
