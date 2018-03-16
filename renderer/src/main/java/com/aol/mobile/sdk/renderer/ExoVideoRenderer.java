@@ -209,8 +209,6 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
                     ((FlatRendererView) streamRenderer).setTransform(matrix);
                 }
 
-                System.out.println(Thread.currentThread().getName() + " EXO TEST " + exoPlayer + " " + videoUrl);
-                Thread.dumpStack();
                 exoPlayer.removeTextOutput(this);
                 exoPlayer.removeListener(this);
                 exoPlayer.removeVideoListener(this);
@@ -229,7 +227,6 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
 
     private void updateExoPlayerSource(@NonNull final MediaSource source) {
         exoPlayer = ExoPlayerFactory.newSimpleInstance(context, trackSelector);
-        System.out.println(Thread.currentThread().getName() + " EXO TEST NEW " + exoPlayer);
         exoPlayer.prepare(source);
 
         for (int rendererIndex = 0; rendererIndex < exoPlayer.getRendererCount(); rendererIndex++) {
