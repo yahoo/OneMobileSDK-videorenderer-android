@@ -30,6 +30,7 @@ public class VideoVM {
     public Long seekPosition;
     @Nullable
     public Long currentPosition;
+    public boolean areSubtitlesEnabled = true;
     public boolean isScalable = true;
     public boolean isMaintainAspectRatio = true;
     public boolean isMuted;
@@ -44,13 +45,6 @@ public class VideoVM {
     public Callbacks callbacks;
 
     public interface Callbacks {
-        /**
-         * Fired when new subtitle need to be shown
-         *
-         * @param subtitle text of subtitle to show
-         */
-        void onSubtitleUpdated(@Nullable CharSequence subtitle);
-
         /**
          * Fired when duration of video is set.
          *
