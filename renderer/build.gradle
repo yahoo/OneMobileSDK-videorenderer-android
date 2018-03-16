@@ -19,9 +19,6 @@ ext {
     ARTIFACT_ID = 'renderer'
     LIBRARY_VERSION = GIT_BASED_VERSION
 
-    // ExoPlayer
-    EXO_VERSION = '2.6.1'
-
     MINIFY_LIB = true
 }
 
