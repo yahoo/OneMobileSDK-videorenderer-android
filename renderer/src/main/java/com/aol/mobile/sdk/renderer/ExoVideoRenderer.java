@@ -37,7 +37,6 @@ import com.google.android.exoplayer2.source.TrackGroup;
 import com.google.android.exoplayer2.source.TrackGroupArray;
 import com.google.android.exoplayer2.source.hls.HlsMediaSource;
 import com.google.android.exoplayer2.text.Cue;
-import com.google.android.exoplayer2.text.TextOutput;
 import com.google.android.exoplayer2.trackselection.AdaptiveTrackSelection;
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
 import com.google.android.exoplayer2.trackselection.FixedTrackSelection;
@@ -45,6 +44,7 @@ import com.google.android.exoplayer2.trackselection.MappingTrackSelector;
 import com.google.android.exoplayer2.trackselection.MappingTrackSelector.SelectionOverride;
 import com.google.android.exoplayer2.trackselection.TrackSelection;
 import com.google.android.exoplayer2.trackselection.TrackSelectionArray;
+import com.google.android.exoplayer2.ui.SubtitleView;
 import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.DataSpec;
 import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter;
@@ -58,7 +58,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedList;
-import java.util.List;
 
 import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
 import static com.aol.mobile.sdk.renderer.viewmodel.VideoVM.Callbacks.Error.CONNECTION;
@@ -70,7 +69,7 @@ import static com.google.android.exoplayer2.util.Util.getUserAgent;
 import static com.google.android.exoplayer2.util.Util.inferContentType;
 
 class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfaceListener,
-        Player.EventListener, VideoListener, TextOutput {
+        Player.EventListener, VideoListener {
 
     @NonNull
     private final Handler handler = new Handler();
@@ -88,6 +87,8 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
     private final HlsMediaSource.Factory hlsMediaFactory;
     @NonNull
     private final SingleSampleMediaSource.Factory srtMediaFactory;
+    @NonNull
+    private final SubtitleView subtitleView;
     @Nullable
     protected VideoVM.Callbacks callbacks;
     @Nullable
@@ -124,6 +125,8 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
 
     public ExoVideoRenderer(@NonNull Context context) {
         super(context);
+
+        subtitleView = new SubtitleView(context);
         DefaultHttpDataSourceFactory httpDataSourceFactory = new DefaultHttpDataSourceFactory(
                 getUserAgent(context, "VideoSDK"), bandwidthMeter,
                 8000, 8000, true);
@@ -196,6 +199,7 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
 
         removeAllViews();
         addView(streamRenderer, MATCH_PARENT, MATCH_PARENT);
+        addView(subtitleView, MATCH_PARENT, MATCH_PARENT);
     }
 
     private void playVideo(@Nullable String videoUrl, @Nullable String subLang, @Nullable String subtitleUrl) {
@@ -208,8 +212,8 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
                     matrix.setScale(0, 0, 0, 0);
                     ((FlatRendererView) streamRenderer).setTransform(matrix);
                 }
-
-                exoPlayer.removeTextOutput(this);
+                subtitleView.onCues(Collections.<Cue>emptyList());
+                exoPlayer.removeTextOutput(subtitleView);
                 exoPlayer.removeListener(this);
                 exoPlayer.removeVideoListener(this);
                 exoPlayer.setVideoSurface(null);
@@ -235,7 +239,7 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
                 break;
             }
         }
-        exoPlayer.addTextOutput(this);
+        exoPlayer.addTextOutput(subtitleView);
         exoPlayer.addListener(this);
         exoPlayer.addVideoListener(this);
         exoPlayer.setVolume(isMuted ? 0f : 1f);
@@ -278,6 +282,11 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
     }
 
     public void render(@NonNull VideoVM videoVM) {
+        boolean areVisible = subtitleView.getVisibility() == VISIBLE;
+        if (areVisible != videoVM.areSubtitlesEnabled) {
+            subtitleView.setVisibility(videoVM.areSubtitlesEnabled ? VISIBLE : GONE);
+        }
+
         if (videoVM.callbacks != null) {
             renderCallbacks(videoVM.callbacks);
         }
@@ -382,6 +391,10 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
 
     private void resumePlayback() {
         if (!shouldPlay) {
+            // Update style and size from CaptioningManager
+            subtitleView.setUserDefaultStyle();
+            subtitleView.setUserDefaultTextSize();
+
             shouldPlay = true;
 
             if (exoPlayer != null && exoPlayer.getPlaybackState() == Player.STATE_READY) {
@@ -484,16 +497,6 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
 
     @Override
     public void onTimelineChanged(Timeline timeline, Object manifest, int reason) {
-    }
-
-    @Override
-    public void onCues(@Nullable List<Cue> cues) {
-        if (callbacks == null) return;
-        if (cues != null && cues.size() > 0) {
-            callbacks.onSubtitleUpdated(cues.get(0).text);
-        } else {
-            callbacks.onSubtitleUpdated(null);
-        }
     }
 
     @SuppressWarnings("ConstantConditions")
