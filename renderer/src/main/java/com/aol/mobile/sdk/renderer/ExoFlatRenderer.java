@@ -25,17 +25,18 @@ import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
 public final class ExoFlatRenderer extends ExoVideoRenderer {
     private CastRenderer castRenderer;
     private CastVideoVMTranslator translator;
-    private View flatRendererView;
+    private OneCastManager oneCastManager;
 
     public ExoFlatRenderer(@NonNull Context context) {
         super(context);
-        flatRendererView = new FlatRendererView(getContext(), this);
+        View flatRendererView = new FlatRendererView(context, this);
         setRenderer(flatRendererView);
+        oneCastManager = new OneCastManager(context);
     }
 
     public void render(@NonNull VideoVM videoVM) {
         if (videoVM.isCasting) {
-            showCastView(videoVM);
+            showCastView();
         } else {
             showFlatView(videoVM);
         }
@@ -47,7 +48,7 @@ public final class ExoFlatRenderer extends ExoVideoRenderer {
         super.render(videoVM);
     }
 
-    private void showCastView(@NonNull VideoVM videoVM) {
+    private void showCastView() {
         if (castRenderer == null) {
             castRenderer = getCastRenderer(getContext());
             translator = new CastVideoVMTranslator();
@@ -85,7 +86,7 @@ public final class ExoFlatRenderer extends ExoVideoRenderer {
         new Handler().post(new Runnable() {
             @Override
             public void run() {
-                OneCastManager.stopCasting(getContext());
+                oneCastManager.stopCasting();
             }
         });
     }
