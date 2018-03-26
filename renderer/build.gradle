@@ -47,8 +47,7 @@ dependencies {
     implementation "com.google.android.exoplayer:exoplayer-hls:$EXO_VERSION"
     implementation "com.google.android.exoplayer:exoplayer-ui:$EXO_VERSION"
 
-    //noinspection GradleDependency
-    compileOnly "com.aol.one.publishers.android:chromecast:1.7-SNAPSHOT"
+    compileOnly "com.aol.one.publishers.android:chromecast:1.8"
 
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit:$KOTLIN_VERSION"
     testImplementation "org.assertj:assertj-core:3.9.1"
