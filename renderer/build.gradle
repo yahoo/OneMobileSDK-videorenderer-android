@@ -29,7 +29,7 @@ apply from: 'https://raw.githubusercontent.com/aol-public/OneMobileSDK-tools-and
 apply plugin: 'api-tracker'
 
 apiTracker {
-    compareVersion = GIT_TAG
+    compareVersion = PREVIOUS_TAG
     reportFile = file("$buildDir/maven/API CHANGES/$ARTIFACT_ID/$compareVersion to ${LIBRARY_VERSION}.md")
     implicitNamespaces = ["com.aol.mobile.sdk.player", "java.util"]
 }
@@ -48,7 +48,7 @@ dependencies {
     implementation "com.google.android.exoplayer:exoplayer-ui:$EXO_VERSION"
 
     //noinspection GradleDependency
-    compileOnly "com.aol.one.publishers.android:chromecast:$CHROMECAST_VERSION"
+    compileOnly "com.aol.one.publishers.android:chromecast:1.7-SNAPSHOT"
 
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit:$KOTLIN_VERSION"
     testImplementation "org.assertj:assertj-core:3.9.1"
