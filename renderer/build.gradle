@@ -53,3 +53,13 @@ dependencies {
     testImplementation "org.assertj:assertj-core:3.9.1"
     testImplementation "org.mockito:mockito-core:2.16.0"
 }
+
+configurations.all {
+    resolutionStrategy {
+        eachDependency { DependencyResolveDetails details ->
+            if (details.requested.group == 'com.android.support') {
+                details.useVersion "$SUPPORT_VERSION"
+            }
+        }
+    }
+}
