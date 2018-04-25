@@ -6,7 +6,9 @@
 package com.aol.mobile.sdk.renderer;
 
 import android.content.Context;
-import android.os.Handler;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
+import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.view.View;
@@ -25,13 +27,31 @@ import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
 public final class ExoFlatRenderer extends ExoVideoRenderer {
     private CastRenderer castRenderer;
     private CastVideoVMTranslator translator;
+    private Context context;
+    private boolean isChromecastModulePresent;
     private OneCastManager oneCastManager;
 
     public ExoFlatRenderer(@NonNull Context context) {
         super(context);
         View flatRendererView = new FlatRendererView(context, this);
         setRenderer(flatRendererView);
-        oneCastManager = new OneCastManager(context);
+        this.context = context;
+
+        checkChromecastModulePresence();
+
+        if (isChromecastModulePresent) {
+            oneCastManager = new OneCastManager(context);
+        }
+    }
+
+    private void checkChromecastModulePresence() {
+        Context context = getContext();
+        try {
+            ApplicationInfo ai = context.getPackageManager().getApplicationInfo(context.getPackageName(), PackageManager.GET_META_DATA);
+            Bundle metaData = ai.metaData;
+            isChromecastModulePresent = metaData != null && metaData.getString("com.google.android.gms.cast.framework.OPTIONS_PROVIDER_CLASS_NAME") != null;
+        } catch (PackageManager.NameNotFoundException ignored) {
+        }
     }
 
     public void render(@NonNull VideoVM videoVM) {
@@ -50,7 +70,7 @@ public final class ExoFlatRenderer extends ExoVideoRenderer {
 
     private void showCastView() {
         if (castRenderer == null) {
-            castRenderer = getCastRenderer(getContext());
+            castRenderer = getCastRenderer();
             translator = new CastVideoVMTranslator();
             if (castRenderer != null) {
                 addView(castRenderer.getViewport(), MATCH_PARENT, MATCH_PARENT);
@@ -70,7 +90,7 @@ public final class ExoFlatRenderer extends ExoVideoRenderer {
     }
 
     @Nullable
-    private CastRenderer getCastRenderer(@NonNull Context context) {
+    private CastRenderer getCastRenderer() {
         return new CastRendererImpl(context);
     }
 
@@ -83,7 +103,10 @@ public final class ExoFlatRenderer extends ExoVideoRenderer {
     }
 
     private void stopCasting() {
-        new Handler().post(new Runnable() {
+        if (!isChromecastModulePresent)
+            return;
+
+        getHandler().post(new Runnable() {
             @Override
             public void run() {
                 oneCastManager.stopCasting();
