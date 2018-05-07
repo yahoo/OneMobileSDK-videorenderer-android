@@ -3,62 +3,49 @@
  * Licensed under the terms of the MIT License. See LICENSE.md file in project root for terms.
  */
 
-ext {
-    // Android build config constants
-    BUILD_CONFIG_CONSTS = [
-            'FLAT_RENDERER'       : "com.onemobilesdk.videorenderer.flat@${GIT_BASED_VERSION}",
-            'THREE_SIXTY_RENDERER': "com.onemobilesdk.videorenderer.360@${GIT_BASED_VERSION}",
-            'FISH_EYE_RENDERER'   : "com.onemobilesdk.videorenderer.fisheye@${GIT_BASED_VERSION}"
-    ]
+apply plugin: 'android-ci-library'
 
-    // Javadoc configuration
-    JAVADOC_TITLE = "OneMobileSDK stream renderer javadoc"
-
-    // Maven
-    GROUP_ID = 'com.aol.one.publishers.android'
-    ARTIFACT_ID = 'renderer'
-    LIBRARY_VERSION = GIT_BASED_VERSION
-
-    MINIFY_LIB = true
+androidCi {
+    groupId = 'com.aol.one.publishers.android'
+    artifactId = 'renderer'
+    githubRepo = 'aol-public/OneMobileSDK-releases-android'
+    apiTrimNamespaces.add("com.aol.mobile.sdk.renderer")
 }
 
-apply from: 'https://raw.githubusercontent.com/aol-public/OneMobileSDK-tools-android/master/android.gradle'
-apply from: 'https://raw.githubusercontent.com/aol-public/OneMobileSDK-tools-android/master/javadoc.gradle'
-apply from: 'https://raw.githubusercontent.com/aol-public/OneMobileSDK-tools-android/master/sources.gradle'
-apply from: 'https://raw.githubusercontent.com/aol-public/OneMobileSDK-tools-android/master/github-maven.gradle'
-apply plugin: 'api-tracker'
+android {
+    defaultConfig {
+        buildConfigField "String", 'FLAT_RENDERER', "\"com.onemobilesdk.videorenderer.flat@$version\""
+        buildConfigField "String", 'THREE_SIXTY_RENDERER', "\"com.onemobilesdk.videorenderer.360@$version\""
+        buildConfigField "String", 'FISH_EYE_RENDERER', "\"com.onemobilesdk.videorenderer.fisheye@$version\""
 
-apiTracker {
-    compareVersion = PREVIOUS_TAG
-    reportFile = file("$buildDir/maven/API CHANGES/$ARTIFACT_ID/$compareVersion to ${LIBRARY_VERSION}.md")
-    implicitNamespaces = ["com.aol.mobile.sdk.player", "java.util"]
-}
-
-afterEvaluate {
-    gitPublishCommit.dependsOn checkApiChanges
-    checkApiChanges.dependsOn gitPublishReset
+        manifestPlaceholders = [
+                'FLAT_RENDERER'       : "com.onemobilesdk.videorenderer.flat@$version",
+                'THREE_SIXTY_RENDERER': "com.onemobilesdk.videorenderer.360@$version",
+                'FISH_EYE_RENDERER'   : "com.onemobilesdk.videorenderer.fisheye@$version"
+        ]
+    }
 }
 
 dependencies {
-    compileOnly "com.android.support:support-annotations:$SUPPORT_VERSION"
-    compileOnly "com.android.support:support-v4:$SUPPORT_VERSION"
+    compileOnly "com.android.support:support-annotations:$support_version"
+    compileOnly "com.android.support:support-v4:$support_version"
 
-    implementation "com.google.android.exoplayer:exoplayer-core:$EXO_VERSION"
-    implementation "com.google.android.exoplayer:exoplayer-hls:$EXO_VERSION"
-    implementation "com.google.android.exoplayer:exoplayer-ui:$EXO_VERSION"
+    implementation "com.google.android.exoplayer:exoplayer-core:$exo_version"
+    implementation "com.google.android.exoplayer:exoplayer-hls:$exo_version"
+    implementation "com.google.android.exoplayer:exoplayer-ui:$exo_version"
 
     compileOnly "com.aol.one.publishers.android:chromecast:1.8"
 
-    testImplementation "org.jetbrains.kotlin:kotlin-test-junit:$KOTLIN_VERSION"
+    testImplementation "org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version"
     testImplementation "org.assertj:assertj-core:3.9.1"
     testImplementation "org.mockito:mockito-core:2.16.0"
 }
 
 configurations.all {
     resolutionStrategy {
-        eachDependency { DependencyResolveDetails details ->
+        eachDependency { details ->
             if (details.requested.group == 'com.android.support') {
-                details.useVersion "$SUPPORT_VERSION"
+                details.useVersion support_version
             }
         }
     }

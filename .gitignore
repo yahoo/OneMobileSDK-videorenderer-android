@@ -13,8 +13,8 @@ bin/
 gen/
 
 # IntelliJ
-.idea/*.xml
-.idea/libraries
+/.idea/*.xml
+/.idea/libraries
 *.iml
 
 # Gradle files
@@ -38,4 +38,6 @@ proguard/
 captures/
 *.DS_Store
 /src/main/java/com/aol/mobile/sdk/player/metrics/pixel/TrackingPixelsGenerator.java
-renderer/proguard-classes.pro
+/renderer/proguard-classes-*.pro
+/.idea/codeStyles/*
+/.idea/caches/*
