@@ -1,1 +1,1 @@
-# OneMobileSDK-videorenderer-android [![Build Status](https://travis-ci.org/aol-public/OneMobileSDK-videorenderer-android.svg?branch=master)](https://travis-ci.org/aol-public/OneMobileSDK-videorenderer-android)
+# OneMobileSDK-videorenderer-android [![Build Status](https://travis-ci.com/aol-public/OneMobileSDK-videorenderer-android.svg?branch=master)](https://travis-ci.com/aol-public/OneMobileSDK-videorenderer-android)
