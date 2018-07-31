@@ -24,6 +24,10 @@ android {
                 'FISH_EYE_RENDERER'   : "com.onemobilesdk.videorenderer.fisheye@$version"
         ]
     }
+
+    lintOptions {
+        abortOnError false
+    }
 }
 
 dependencies {

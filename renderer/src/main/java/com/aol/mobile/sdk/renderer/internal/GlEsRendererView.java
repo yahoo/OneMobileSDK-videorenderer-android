@@ -46,23 +46,13 @@ public final class GlEsRendererView extends GLSurfaceView {
     }
 
     public void dispose() {
-        queueEvent(new Runnable() {
-            @Override
-            public void run() {
-                renderer.dispose();
-            }
-        });
+        queueEvent(renderer::dispose);
     }
 
     public void setCameraOrientation(final double longitude, final double latitude) {
         if (longitude == this.longitude && latitude == this.latitude) return;
         this.longitude = longitude;
         this.latitude = latitude;
-        queueEvent(new Runnable() {
-            @Override
-            public void run() {
-                renderer.setCameraOrientation(longitude, latitude);
-            }
-        });
+        queueEvent(() -> renderer.setCameraOrientation(longitude, latitude));
     }
 }

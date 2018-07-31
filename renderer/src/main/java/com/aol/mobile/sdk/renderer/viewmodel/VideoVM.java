@@ -119,6 +119,16 @@ public class VideoVM {
          */
         void onTrackInfoAvailable(@NonNull List<AudioTrack> audioTrackList, @NonNull List<TextTrack> textTrackList);
 
+        /**
+         * Fired when actual frame of video is visible to user.
+         */
+        void onVideoFrameVisible();
+
+        /**
+         * Fired when no video frames can be presented to user.
+         */
+        void onVideoFrameGone();
+
         enum Error {
             /**
              * Bad internet or slow, timed out connection error.

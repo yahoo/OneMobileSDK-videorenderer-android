@@ -36,7 +36,6 @@ import com.google.android.exoplayer2.source.SingleSampleMediaSource;
 import com.google.android.exoplayer2.source.TrackGroup;
 import com.google.android.exoplayer2.source.TrackGroupArray;
 import com.google.android.exoplayer2.source.hls.HlsMediaSource;
-import com.google.android.exoplayer2.text.Cue;
 import com.google.android.exoplayer2.trackselection.AdaptiveTrackSelection;
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
 import com.google.android.exoplayer2.trackselection.FixedTrackSelection;
@@ -55,7 +54,6 @@ import com.google.android.exoplayer2.video.VideoListener;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedList;
 
@@ -65,32 +63,20 @@ import static com.aol.mobile.sdk.renderer.viewmodel.VideoVM.Callbacks.Error.CONT
 import static com.google.android.exoplayer2.Format.createTextSampleFormat;
 import static com.google.android.exoplayer2.RendererCapabilities.FORMAT_HANDLED;
 import static com.google.android.exoplayer2.util.MimeTypes.APPLICATION_SUBRIP;
+import static com.google.android.exoplayer2.util.Util.areEqual;
 import static com.google.android.exoplayer2.util.Util.getUserAgent;
 import static com.google.android.exoplayer2.util.Util.inferContentType;
 
 class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfaceListener,
         Player.EventListener, VideoListener {
-
-    @NonNull
-    private final Handler handler = new Handler();
-    @NonNull
-    private final DefaultBandwidthMeter bandwidthMeter = new DefaultBandwidthMeter();
-    @NonNull
-    private final TrackSelection.Factory adaptiveTrackSelectionFactory = new AdaptiveTrackSelection.Factory(bandwidthMeter);
-    @NonNull
-    private final TrackSelection.Factory selectionFactory = new FixedTrackSelection.Factory();
-    @NonNull
-    private final DefaultTrackSelector trackSelector = new DefaultTrackSelector(adaptiveTrackSelectionFactory);
-    @NonNull
-    private final ExtractorMediaSource.Factory mediaFactory;
-    @NonNull
-    private final HlsMediaSource.Factory hlsMediaFactory;
-    @NonNull
-    private final SingleSampleMediaSource.Factory srtMediaFactory;
     @NonNull
     private final SubtitleView subtitleView;
     @Nullable
     protected VideoVM.Callbacks callbacks;
+    @Nullable
+    private TrackSelection.Factory selectionFactory;
+    @Nullable
+    private DefaultTrackSelector trackSelector;
     @Nullable
     private SimpleExoPlayer exoPlayer;
     @NonNull
@@ -109,7 +95,6 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
     @Nullable
     private Long duration;
     private boolean shouldPlay;
-    private int playbackState;
     private int videoWidth = Integer.MIN_VALUE;
     private int videoHeight = Integer.MIN_VALUE;
     private int viewportWidth = Integer.MIN_VALUE;
@@ -122,31 +107,36 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
     private String subtitleUrl;
     @Nullable
     private String subtitleLang;
+    private boolean endReported;
 
     public ExoVideoRenderer(@NonNull Context context) {
         super(context);
 
         subtitleView = new SubtitleView(context);
+
+
+        this.context = context;
+    }
+
+    @NonNull
+    private MediaSource buildMediaSource(@NonNull String videoUriString, @Nullable String subtitleLang, @Nullable String subtitleUriString) {
+        DefaultBandwidthMeter bandwidthMeter = new DefaultBandwidthMeter();
+
         DefaultHttpDataSourceFactory httpDataSourceFactory = new DefaultHttpDataSourceFactory(
                 getUserAgent(context, "VideoSDK"), bandwidthMeter,
                 8000, 8000, true);
 
         DataSource.Factory dataSourceFactory =
                 new DefaultDataSourceFactory(context, bandwidthMeter, httpDataSourceFactory);
-        this.hlsMediaFactory = new HlsMediaSource.Factory(dataSourceFactory)
-                .setAllowChunklessPreparation(true);
-        this.mediaFactory = new ExtractorMediaSource.Factory(dataSourceFactory);
-        this.srtMediaFactory = new SingleSampleMediaSource.Factory(dataSourceFactory);
-        this.context = context;
-    }
 
-    @NonNull
-    private MediaSource buildMediaSource(@NonNull String videoUriString, @Nullable String subtitleLang, @Nullable String subtitleUriString) {
+
         Uri videoUri = Uri.parse(videoUriString);
         MediaSource source;
-
+        final Handler handler = new Handler();
         switch (inferContentType(videoUri.getLastPathSegment())) {
             case C.TYPE_HLS:
+                HlsMediaSource.Factory hlsMediaFactory = new HlsMediaSource.Factory(dataSourceFactory)
+                        .setAllowChunklessPreparation(true);
                 source = hlsMediaFactory.createMediaSource(videoUri, handler, new MediaSourceEventListener() {
                     @Override
                     public void onLoadStarted(DataSpec dataSpec, int i, int i1, Format format, int i2, Object o, long l, long l1, long l2) {
@@ -181,9 +171,11 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
                 break;
 
             default:
+                ExtractorMediaSource.Factory mediaFactory = new ExtractorMediaSource.Factory(dataSourceFactory);
                 source = mediaFactory.createMediaSource(videoUri, handler, null);
                 Uri subtitleUri = subtitleUriString == null ? null : Uri.parse(subtitleUriString);
                 if (subtitleUri != null) {
+                    SingleSampleMediaSource.Factory srtMediaFactory = new SingleSampleMediaSource.Factory(dataSourceFactory);
                     Format textFormat = createTextSampleFormat(subtitleLang, APPLICATION_SUBRIP, null, C.POSITION_UNSET, C.POSITION_UNSET, subtitleLang, null, 9223372036854775807L);
                     MediaSource subtitleSource = srtMediaFactory.createMediaSource(subtitleUri, textFormat, C.TIME_UNSET);
                     source = new MergingMediaSource(source, subtitleSource);
@@ -204,32 +196,40 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
 
     private void playVideo(@Nullable String videoUrl, @Nullable String subLang, @Nullable String subtitleUrl) {
         duration = null;
-        if (this.videoUrl != null) {
-            progressTimer.stop();
-            if (exoPlayer != null) {
-                if (streamRenderer instanceof FlatRendererView) {
-                    Matrix matrix = new Matrix();
-                    matrix.setScale(0, 0, 0, 0);
-                    ((FlatRendererView) streamRenderer).setTransform(matrix);
-                }
-                subtitleView.onCues(Collections.<Cue>emptyList());
-                exoPlayer.removeTextOutput(subtitleView);
-                exoPlayer.removeListener(this);
-                exoPlayer.removeVideoListener(this);
-                exoPlayer.setVideoSurface(null);
-                exoPlayer.release();
-                exoPlayer = null;
+        if (exoPlayer != null) {
+            if (streamRenderer instanceof FlatRendererView) {
+                Matrix matrix = new Matrix();
+                matrix.setScale(0, 0, 0, 0);
+                ((FlatRendererView) streamRenderer).setTransform(matrix);
             }
+            subtitleView.onCues(Collections.emptyList());
+            exoPlayer.removeTextOutput(subtitleView);
+            exoPlayer.removeListener(this);
+            exoPlayer.removeVideoListener(this);
+            exoPlayer.setVideoSurface(null);
+            exoPlayer.release();
+            trackSelector = null;
+            selectionFactory = null;
+            exoPlayer = null;
+            progressTimer.stop();
         }
+
         this.videoUrl = videoUrl;
         this.subtitleUrl = subtitleUrl;
         this.subtitleLang = subLang;
-        if (videoUrl == null) return;
+        if (videoUrl == null) {
+            if (callbacks != null) {
+                callbacks.onVideoFrameGone();
+            }
+            return;
+        }
 
         updateExoPlayerSource(buildMediaSource(videoUrl, subtitleLang, subtitleUrl));
     }
 
     private void updateExoPlayerSource(@NonNull final MediaSource source) {
+        trackSelector = new DefaultTrackSelector(new AdaptiveTrackSelection.Factory(new DefaultBandwidthMeter()));
+        selectionFactory = new FixedTrackSelection.Factory();
         exoPlayer = ExoPlayerFactory.newSimpleInstance(context, trackSelector);
         exoPlayer.prepare(source);
 
@@ -282,6 +282,9 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
     }
 
     public void render(@NonNull VideoVM videoVM) {
+        int visibility = videoVM.videoUrl == null ? GONE : VISIBLE;
+        if (getVisibility() != visibility) setVisibility(visibility);
+
         boolean areVisible = subtitleView.getVisibility() == VISIBLE;
         if (areVisible != videoVM.areSubtitlesEnabled) {
             subtitleView.setVisibility(videoVM.areSubtitlesEnabled ? VISIBLE : GONE);
@@ -293,10 +296,8 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
 
         this.scalable = videoVM.isScalable;
         this.maintainAspectRatio = videoVM.isMaintainAspectRatio;
-        if (videoVM.videoUrl != null && !videoVM.videoUrl.equals(videoUrl)) {
+        if (!areEqual(videoUrl, videoVM.videoUrl)) {
             playVideo(videoVM.videoUrl, videoVM.subtitleLang, videoVM.subtitleUrl);
-        } else if (videoVM.videoUrl == null && videoUrl != null) {
-            playVideo(null, null, null);
         }
 
         Long seekPos = videoVM.seekPosition;
@@ -339,7 +340,7 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
     }
 
     private void switchToAudioTrack(@Nullable AudioTrack audioTrack) {
-        if (audioTrack == null) return;
+        if (audioTrack == null || trackSelector == null) return;
 
         MappingTrackSelector.MappedTrackInfo info = trackSelector.getCurrentMappedTrackInfo();
         trackSelector.clearSelectionOverrides(audioTrack.id.renderer);
@@ -361,7 +362,7 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
     }
 
     private void switchToTextTrack(@Nullable TextTrack textTrack) {
-        if (textTrack == null) return;
+        if (textTrack == null || trackSelector == null) return;
 
         MappingTrackSelector.MappedTrackInfo info = trackSelector.getCurrentMappedTrackInfo();
         if (textTrack.id.group < 0 || textTrack.id.track < 0) {
@@ -379,12 +380,9 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
         if (shouldPlay) {
             shouldPlay = false;
 
-            if (exoPlayer != null && exoPlayer.getPlaybackState() == Player.STATE_READY) {
+            if (exoPlayer != null) {
                 exoPlayer.setPlayWhenReady(false);
                 progressTimer.stop();
-                if (callbacks != null) {
-                    callbacks.onVideoPlaybackFlagUpdated(exoPlayer.getPlayWhenReady());
-                }
             }
         }
     }
@@ -397,15 +395,11 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
 
             shouldPlay = true;
 
-            if (exoPlayer != null && exoPlayer.getPlaybackState() == Player.STATE_READY) {
+            if (exoPlayer != null) {
                 if (exoPlayer.isCurrentWindowDynamic() && exoPlayer.isCurrentWindowSeekable()) {
                     exoPlayer.seekToDefaultPosition();
                 }
                 exoPlayer.setPlayWhenReady(true);
-                progressTimer.start();
-                if (callbacks != null) {
-                    callbacks.onVideoPlaybackFlagUpdated(exoPlayer.getPlayWhenReady());
-                }
             }
         }
     }
@@ -420,10 +414,9 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
     private void seekTo(long position) {
         if (exoPlayer != null && Math.abs(exoPlayer.getCurrentPosition() - position) > 100) {
             exoPlayer.seekTo(position);
-        }
-
-        if (callbacks != null) {
-            callbacks.onSeekPerformed();
+            if (callbacks != null) {
+                callbacks.onSeekPerformed();
+            }
         }
     }
 
@@ -444,46 +437,45 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
 
     @Override
     public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
-        if (this.playbackState != playbackState) {
-            this.playbackState = playbackState;
-            assert exoPlayer != null;
+        if (exoPlayer == null) return;
 
-            switch (playbackState) {
-                case Player.STATE_READY:
+        switch (playbackState) {
+            case Player.STATE_READY:
+                if (callbacks != null) {
+                    callbacks.onVideoPlaybackFlagUpdated(playWhenReady);
+                }
+                if (playWhenReady)
                     progressTimer.start();
-                    exoPlayer.setPlayWhenReady(shouldPlay);
-                    if (callbacks != null) {
-                        callbacks.onVideoPlaybackFlagUpdated(shouldPlay);
-                    }
-                    break;
+                endReported = false;
+                break;
 
-                case Player.STATE_IDLE:
-                case Player.STATE_BUFFERING:
+            case Player.STATE_IDLE:
+            case Player.STATE_BUFFERING:
+                progressTimer.stop();
+                if (callbacks != null) {
+                    callbacks.onVideoPlaybackFlagUpdated(false);
+                }
+                endReported = false;
+                break;
+
+            case Player.STATE_ENDED:
+                if (!exoPlayer.isCurrentWindowDynamic()) {
                     progressTimer.stop();
-                    exoPlayer.setPlayWhenReady(false);
                     if (callbacks != null) {
-                        callbacks.onVideoPlaybackFlagUpdated(false);
+                        if (this.duration == null) {
+                            callbacks.onErrorOccurred(CONTENT);
+                            return;
+                        }
+                        callbacks.onVideoPositionUpdated(exoPlayer.getDuration());
                     }
-                    break;
+                }
 
-                case Player.STATE_ENDED:
-                    if (!exoPlayer.isCurrentWindowDynamic()) {
-                        exoPlayer.setPlayWhenReady(false);
-                        progressTimer.stop();
-                        if (callbacks != null) {
-                            if (this.duration == null) {
-                                callbacks.onErrorOccurred(CONTENT);
-                                return;
-                            }
-                            callbacks.onVideoPositionUpdated(exoPlayer.getDuration());
-                        }
-                        if (callbacks != null) {
-                            callbacks.onVideoPlaybackFlagUpdated(false);
-                            callbacks.onVideoEnded();
-                        }
-                    }
-                    break;
-            }
+                if (callbacks != null && !endReported) {
+                    callbacks.onVideoPlaybackFlagUpdated(false);
+                    callbacks.onVideoEnded();
+                    endReported = true;
+                }
+                break;
         }
     }
 
@@ -559,21 +551,11 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
         }
 
         TextTrack.Id id = new TextTrack.Id(textRendererIndex, -1, -1);
-        Collections.sort(textTracks, new Comparator<TextTrack>() {
-            @Override
-            public int compare(TextTrack o1, TextTrack o2) {
-                return o1.title.compareTo(o2.title);
-            }
-        });
+        Collections.sort(textTracks, (o1, o2) -> o1.title.compareTo(o2.title));
         textTracks.addFirst(new TextTrack(id, "None", !hasSelectedCc));
 
         LinkedList<AudioTrack> audioTrackList = new LinkedList<>(audioTracks.values());
-        Collections.sort(audioTrackList, new Comparator<AudioTrack>() {
-            @Override
-            public int compare(AudioTrack o1, AudioTrack o2) {
-                return o1.title.compareTo(o2.title);
-            }
-        });
+        Collections.sort(audioTrackList, (o1, o2) -> o1.title.compareTo(o2.title));
         callbacks.onTrackInfoAvailable(audioTrackList, textTracks);
     }
 
@@ -659,6 +641,10 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
 
     @Override
     public void onVideoSurfaceReleased(@NonNull Surface surface) {
+        if (callbacks != null) {
+            callbacks.onVideoFrameGone();
+        }
+
         if (this.surface == surface) {
             this.surface = null;
 
@@ -677,6 +663,9 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
 
     @Override
     public void onRenderedFirstFrame() {
+        if (callbacks != null) {
+            callbacks.onVideoFrameVisible();
+        }
     }
 
     private class ProgressTimer {
@@ -700,22 +689,18 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
                             && shouldPlay && (position <= duration || duration == 0)) {
                         callbacks.onVideoPositionUpdated(position);
                     }
-                    if (duration != null && position > duration && playbackState != Player.STATE_ENDED
-                            && exoPlayer.getPlayWhenReady()) {
-                        onPlayerStateChanged(shouldPlay, Player.STATE_ENDED);
-                    }
                 }
-                handler.postDelayed(action, 200);
+                postDelayed(action, 200);
             }
         };
 
         public void start() {
-            handler.removeCallbacks(action);
+            removeCallbacks(action);
             action.run();
         }
 
         void stop() {
-            handler.removeCallbacks(action);
+            removeCallbacks(action);
         }
     }
 }
