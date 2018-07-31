@@ -28,7 +28,7 @@ public class CameraOrientationModuleTest {
     }
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         callbacks = mock(VideoVM.Callbacks.class);
         com = new CameraOrientationModule();
         com.setCallbacks(callbacks);
