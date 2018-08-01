@@ -38,7 +38,7 @@ dependencies {
     implementation "com.google.android.exoplayer:exoplayer-hls:$exo_version"
     implementation "com.google.android.exoplayer:exoplayer-ui:$exo_version"
 
-    compileOnly "com.aol.one.publishers.android:chromecast:1.8"
+//    compileOnly "com.aol.one.publishers.android:chromecast:1.8"
 
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version"
     testImplementation "org.assertj:assertj-core:3.9.1"
