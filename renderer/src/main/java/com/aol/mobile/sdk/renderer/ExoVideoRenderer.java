@@ -282,9 +282,6 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
     }
 
     public void render(@NonNull VideoVM videoVM) {
-        int visibility = videoVM.videoUrl == null ? GONE : VISIBLE;
-        if (getVisibility() != visibility) setVisibility(visibility);
-
         boolean areVisible = subtitleView.getVisibility() == VISIBLE;
         if (areVisible != videoVM.areSubtitlesEnabled) {
             subtitleView.setVisibility(videoVM.areSubtitlesEnabled ? VISIBLE : GONE);
