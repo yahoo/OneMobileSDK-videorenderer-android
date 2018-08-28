@@ -6,29 +6,25 @@
 package com.aol.mobile.sdk.renderer;
 
 import android.content.Context;
-import android.content.pm.ApplicationInfo;
-import android.content.pm.PackageManager;
-import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.view.View;
 
 import com.aol.mobile.sdk.annotations.PublicApi;
 import com.aol.mobile.sdk.renderer.internal.FlatRendererView;
-import com.aol.mobile.sdk.renderer.viewmodel.VideoVM;
 
 @PublicApi
 public final class ExoFlatRenderer extends ExoVideoRenderer {
 //    private CastRenderer castRenderer;
 //    private CastVideoVMTranslator translator;
-    private Context context;
-    private boolean isChromecastModulePresent;
+//    private Context context;
+//    private boolean isChromecastModulePresent;
 //    private OneCastManager oneCastManager;
 
     public ExoFlatRenderer(@NonNull Context context) {
         super(context);
         View flatRendererView = new FlatRendererView(context, this);
         setRenderer(flatRendererView);
-        this.context = context;
+//        this.context = context;
 
 //        checkChromecastModulePresence();
 //
@@ -37,17 +33,17 @@ public final class ExoFlatRenderer extends ExoVideoRenderer {
 //        }
     }
 
-    private void checkChromecastModulePresence() {
-        Context context = getContext();
-        try {
-            ApplicationInfo ai = context.getPackageManager().getApplicationInfo(context.getPackageName(), PackageManager.GET_META_DATA);
-            Bundle metaData = ai.metaData;
-            isChromecastModulePresent = metaData != null && metaData.getString("com.google.android.gms.cast.framework.OPTIONS_PROVIDER_CLASS_NAME") != null;
-        } catch (PackageManager.NameNotFoundException ignored) {
-        }
-    }
+//    private void checkChromecastModulePresence() {
+//        Context context = getContext();
+//        try {
+//            ApplicationInfo ai = context.getPackageManager().getApplicationInfo(context.getPackageName(), PackageManager.GET_META_DATA);
+//            Bundle metaData = ai.metaData;
+//            isChromecastModulePresent = metaData != null && metaData.getString("com.google.android.gms.cast.framework.OPTIONS_PROVIDER_CLASS_NAME") != null;
+//        } catch (PackageManager.NameNotFoundException ignored) {
+//        }
+//    }
 
-    public void render(@NonNull VideoVM videoVM) {
+//    public void render(@NonNull VideoVM videoVM) {
 //        if (videoVM.isCasting) {
 //            showCastView();
 //        } else {
@@ -58,8 +54,8 @@ public final class ExoFlatRenderer extends ExoVideoRenderer {
 //            castRenderer.render(translator.translate(videoVM));
 //            videoVM.shouldPlay = false;
 //        }
-        super.render(videoVM);
-    }
+//        super.render(videoVM);
+//    }
 
 //    private void showCastView() {
 //        if (castRenderer == null) {
@@ -87,13 +83,13 @@ public final class ExoFlatRenderer extends ExoVideoRenderer {
 //        return new CastRendererImpl(context);
 //    }
 
-    @Override
-    public void dispose() {
-        super.dispose();
+//    @Override
+//    public void dispose() {
+//        super.dispose();
 //        if (castRenderer != null) {
 //            stopCasting();
 //        }
-    }
+//    }
 
 //    private void stopCasting() {
 //        if (!isChromecastModulePresent)

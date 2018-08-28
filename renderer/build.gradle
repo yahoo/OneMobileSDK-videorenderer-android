@@ -14,6 +14,8 @@ androidCi {
 
 android {
     defaultConfig {
+        minSdkVersion 19
+
         buildConfigField "String", 'FLAT_RENDERER', "\"com.onemobilesdk.videorenderer.flat@$version\""
         buildConfigField "String", 'THREE_SIXTY_RENDERER', "\"com.onemobilesdk.videorenderer.360@$version\""
         buildConfigField "String", 'FISH_EYE_RENDERER', "\"com.onemobilesdk.videorenderer.fisheye@$version\""

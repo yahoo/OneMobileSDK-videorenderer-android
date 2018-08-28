@@ -28,12 +28,7 @@ class ThreeSixtyRenderer extends ExoVideoRenderer {
 
     public ThreeSixtyRenderer(@NonNull Context context) {
         super(context);
-        cameraOrientationSensor = new CameraOrientationSensor(context, new CameraOrientationSensor.Listener() {
-            @Override
-            public void onOrientationChange(float azimuth, float pitch, float roll) {
-                cameraOrientationModule.updateDeviceOrientation(azimuth, pitch, roll);
-            }
-        });
+        cameraOrientationSensor = new CameraOrientationSensor(context, cameraOrientationModule::updateDeviceOrientation);
     }
 
     @Override

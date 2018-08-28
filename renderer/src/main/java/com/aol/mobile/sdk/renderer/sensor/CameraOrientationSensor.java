@@ -30,9 +30,9 @@ import static java.lang.Math.abs;
 public final class CameraOrientationSensor {
     @NonNull
     private final Listener listener;
-    @NonNull
+    @Nullable
     private final SensorManager sensorManager;
-    @NonNull
+    @Nullable
     private final WindowManager windowManager;
     @Nullable
     private final Sensor rotationVectorSensor;
@@ -53,23 +53,25 @@ public final class CameraOrientationSensor {
                     float[] rotationMatrix = new float[9];
                     getRotationMatrixFromVector(rotationMatrix, event.values);
 
-                    switch (windowManager.getDefaultDisplay().getRotation()) {
-                        case Surface.ROTATION_90:
-                            remapCoordinateSystem(rotationMatrix, AXIS_X, AXIS_MINUS_Y, this.rotationMatrix);
-                            break;
+                    if (windowManager != null) {
+                        switch (windowManager.getDefaultDisplay().getRotation()) {
+                            case Surface.ROTATION_90:
+                                remapCoordinateSystem(rotationMatrix, AXIS_X, AXIS_MINUS_Y, this.rotationMatrix);
+                                break;
 
-                        case Surface.ROTATION_270:
-                            remapCoordinateSystem(rotationMatrix, AXIS_X, AXIS_Y, this.rotationMatrix);
-                            break;
+                            case Surface.ROTATION_270:
+                                remapCoordinateSystem(rotationMatrix, AXIS_X, AXIS_Y, this.rotationMatrix);
+                                break;
 
-                        case Surface.ROTATION_180:
-                            remapCoordinateSystem(rotationMatrix, AXIS_MINUS_Y, AXIS_X, this.rotationMatrix);
-                            break;
+                            case Surface.ROTATION_180:
+                                remapCoordinateSystem(rotationMatrix, AXIS_MINUS_Y, AXIS_X, this.rotationMatrix);
+                                break;
 
-                        default:
-                        case Surface.ROTATION_0:
-                            remapCoordinateSystem(rotationMatrix, AXIS_Y, AXIS_X, this.rotationMatrix);
-                            break;
+                            default:
+                            case Surface.ROTATION_0:
+                                remapCoordinateSystem(rotationMatrix, AXIS_Y, AXIS_X, this.rotationMatrix);
+                                break;
+                        }
                     }
 
                     getOrientation(this.rotationMatrix, orientationAngles);
@@ -102,14 +104,18 @@ public final class CameraOrientationSensor {
 
         sensorManager = (SensorManager) context.getSystemService(SENSOR_SERVICE);
         windowManager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
-        rotationVectorSensor = sensorManager.getDefaultSensor(TYPE_ROTATION_VECTOR);
-        if (rotationVectorSensor != null) {
-            sensorManager.registerListener(eventListener, rotationVectorSensor, SENSOR_DELAY_FASTEST);
+        if (sensorManager != null) {
+            rotationVectorSensor = sensorManager.getDefaultSensor(TYPE_ROTATION_VECTOR);
+            if (rotationVectorSensor != null) {
+                sensorManager.registerListener(eventListener, rotationVectorSensor, SENSOR_DELAY_FASTEST);
+            }
+        } else {
+            rotationVectorSensor = null;
         }
     }
 
     public void dispose() {
-        if (rotationVectorSensor != null) {
+        if (rotationVectorSensor != null && sensorManager != null) {
             sensorManager.unregisterListener(eventListener);
         }
     }
