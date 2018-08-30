@@ -83,25 +83,22 @@ public final class SceneRenderer implements GLSurfaceView.Renderer {
         this.model = model;
         textureListener = videoSurfaceListener;
         camera = new Camera(60f, 1f, 1000f);
-        handler = new Handler(new Handler.Callback() {
-            @Override
-            public boolean handleMessage(Message msg) {
-                switch (msg.what) {
-                    case MSG_TEXTURE_CONSTRUCTED:
-                        textureListener.onVideoSurfaceAvailable((Surface) msg.obj);
-                        break;
+        handler = new Handler(msg -> {
+            switch (msg.what) {
+                case MSG_TEXTURE_CONSTRUCTED:
+                    textureListener.onVideoSurfaceAvailable((Surface) msg.obj);
+                    break;
 
-                    case MSG_TEXTURE_RESIZED:
-                        textureListener.onVideoSurfaceResized(msg.arg1, msg.arg2);
-                        break;
+                case MSG_TEXTURE_RESIZED:
+                    textureListener.onVideoSurfaceResized(msg.arg1, msg.arg2);
+                    break;
 
-                    case MSG_TEXTURE_DESTROYED:
-                        textureListener.onVideoSurfaceReleased((Surface) msg.obj);
-                        break;
-                }
-
-                return false;
+                case MSG_TEXTURE_DESTROYED:
+                    textureListener.onVideoSurfaceReleased((Surface) msg.obj);
+                    break;
             }
+
+            return false;
         });
     }
 

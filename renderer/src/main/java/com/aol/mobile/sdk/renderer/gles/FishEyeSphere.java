@@ -66,7 +66,7 @@ public final class FishEyeSphere implements GLESModel {
         for (int latStep = 0; latStep <= slices; latStep++) {
             float latitude = latStepAngle * latStep;
 
-            float koeffZ = (float) (3f * latitude / 2f / Math.PI);
+            float coefficientZ = (float) (3f * latitude / 2f / Math.PI);
             float sinLat = (float) Math.sin(latitude);
             float cosLat = (float) Math.cos(latitude);
 
@@ -80,8 +80,8 @@ public final class FishEyeSphere implements GLESModel {
                 float x = radius * sinLat * sinLon;
                 float y = radius * sinLat * cosLon;
                 float z = radius * cosLat;
-                float s = Math.min(1f, .5f + koeffZ * sinLon / 2);
-                float t = Math.min(1f, .5f + koeffZ * cosLon / 2);
+                float s = Math.min(1f, .5f + coefficientZ * sinLon / 2);
+                float t = Math.min(1f, .5f + coefficientZ * cosLon / 2);
 
                 lineVertexBuffer[baseOffset + X_OFFSET] = x;
                 lineVertexBuffer[baseOffset + Y_OFFSET] = y;
