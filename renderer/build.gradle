@@ -8,13 +8,13 @@ apply plugin: 'android-ci-library'
 androidCi {
     groupId = 'com.aol.one.publishers.android'
     artifactId = 'renderer'
-    githubRepo = 'aol-public/OneMobileSDK-releases-android'
+    githubRepo = 'OathAdPlatforms/OneMobileSDK-releases-android'
     apiTrimNamespaces.add("com.aol.mobile.sdk.renderer")
 }
 
 android {
     defaultConfig {
-        minSdkVersion 19
+        minSdkVersion 16
 
         buildConfigField "String", 'FLAT_RENDERER', "\"com.onemobilesdk.videorenderer.flat@$version\""
         buildConfigField "String", 'THREE_SIXTY_RENDERER', "\"com.onemobilesdk.videorenderer.360@$version\""
@@ -39,8 +39,6 @@ dependencies {
     implementation "com.google.android.exoplayer:exoplayer-core:$exo_version"
     implementation "com.google.android.exoplayer:exoplayer-hls:$exo_version"
     implementation "com.google.android.exoplayer:exoplayer-ui:$exo_version"
-
-//    compileOnly "com.aol.one.publishers.android:chromecast:1.8"
 
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version"
     testImplementation "org.assertj:assertj-core:3.9.1"
