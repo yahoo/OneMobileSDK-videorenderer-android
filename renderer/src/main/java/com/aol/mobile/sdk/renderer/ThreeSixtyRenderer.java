@@ -5,7 +5,6 @@
 
 package com.aol.mobile.sdk.renderer;
 
-
 import android.content.Context;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
