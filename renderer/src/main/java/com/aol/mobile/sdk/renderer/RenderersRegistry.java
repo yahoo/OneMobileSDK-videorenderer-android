@@ -5,7 +5,6 @@
 
 package com.aol.mobile.sdk.renderer;
 
-
 import android.content.Context;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;

@@ -38,14 +38,11 @@ import com.google.android.exoplayer2.source.TrackGroupArray;
 import com.google.android.exoplayer2.source.hls.HlsMediaSource;
 import com.google.android.exoplayer2.trackselection.AdaptiveTrackSelection;
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
-import com.google.android.exoplayer2.trackselection.FixedTrackSelection;
 import com.google.android.exoplayer2.trackselection.MappingTrackSelector;
-import com.google.android.exoplayer2.trackselection.MappingTrackSelector.SelectionOverride;
 import com.google.android.exoplayer2.trackselection.TrackSelection;
 import com.google.android.exoplayer2.trackselection.TrackSelectionArray;
 import com.google.android.exoplayer2.ui.SubtitleView;
 import com.google.android.exoplayer2.upstream.DataSource;
-import com.google.android.exoplayer2.upstream.DataSpec;
 import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter;
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
 import com.google.android.exoplayer2.upstream.DefaultHttpDataSourceFactory;
@@ -73,8 +70,6 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
     private final SubtitleView subtitleView;
     @Nullable
     protected VideoVM.Callbacks callbacks;
-    @Nullable
-    private TrackSelection.Factory selectionFactory;
     @Nullable
     private DefaultTrackSelector trackSelector;
     @Nullable
@@ -137,42 +132,55 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
             case C.TYPE_HLS:
                 HlsMediaSource.Factory hlsMediaFactory = new HlsMediaSource.Factory(dataSourceFactory)
                         .setAllowChunklessPreparation(true);
-                source = hlsMediaFactory.createMediaSource(videoUri, handler, new MediaSourceEventListener() {
+                source = hlsMediaFactory.createMediaSource(videoUri);
+                source.addEventListener(handler, new MediaSourceEventListener() {
                     @Override
-                    public void onLoadStarted(DataSpec dataSpec, int i, int i1, Format format, int i2, Object o, long l, long l1, long l2) {
+                    public void onMediaPeriodCreated(int windowIndex, MediaSource.MediaPeriodId mediaPeriodId) {
                     }
 
                     @Override
-                    public void onLoadCompleted(DataSpec dataSpec, int i, int i1, Format format, int i2, Object o, long l, long l1, long l2, long l3, long l4) {
-                        if (callbacks != null && format != null) {
-                            callbacks.onHlsBitrateUpdated(format.bitrate);
+                    public void onMediaPeriodReleased(int windowIndex, MediaSource.MediaPeriodId mediaPeriodId) {
+                    }
+
+                    @Override
+                    public void onLoadStarted(int windowIndex, @Nullable MediaSource.MediaPeriodId mediaPeriodId, LoadEventInfo loadEventInfo, MediaLoadData mediaLoadData) {
+                    }
+
+                    @Override
+                    public void onLoadCompleted(int windowIndex, @Nullable MediaSource.MediaPeriodId mediaPeriodId, LoadEventInfo loadEventInfo, MediaLoadData mediaLoadData) {
+                        if (callbacks != null && mediaLoadData.trackFormat != null) {
+                            callbacks.onHlsBitrateUpdated(mediaLoadData.trackFormat.bitrate);
                         }
                     }
 
                     @Override
-                    public void onLoadCanceled(DataSpec dataSpec, int i, int i1, Format format, int i2, Object o, long l, long l1, long l2, long l3, long l4) {
+                    public void onLoadCanceled(int windowIndex, @Nullable MediaSource.MediaPeriodId mediaPeriodId, LoadEventInfo loadEventInfo, MediaLoadData mediaLoadData) {
                     }
 
                     @Override
-                    public void onLoadError(DataSpec dataSpec, int i, int i1, Format format, int i2, Object o, long l, long l1, long l2, long l3, long l4, IOException e, boolean b) {
+                    public void onLoadError(int windowIndex, @Nullable MediaSource.MediaPeriodId mediaPeriodId, LoadEventInfo loadEventInfo, MediaLoadData mediaLoadData, IOException error, boolean wasCanceled) {
                         if (shouldPlay && exoPlayer != null && !exoPlayer.getPlayWhenReady()) {
                             playVideo(videoUrl, ExoVideoRenderer.this.subtitleLang, subtitleUrl);
                         }
                     }
 
                     @Override
-                    public void onUpstreamDiscarded(int i, long l, long l1) {
+                    public void onReadingStarted(int windowIndex, MediaSource.MediaPeriodId mediaPeriodId) {
                     }
 
                     @Override
-                    public void onDownstreamFormatChanged(int i, Format format, int i1, Object o, long l) {
+                    public void onUpstreamDiscarded(int windowIndex, MediaSource.MediaPeriodId mediaPeriodId, MediaLoadData mediaLoadData) {
+                    }
+
+                    @Override
+                    public void onDownstreamFormatChanged(int windowIndex, @Nullable MediaSource.MediaPeriodId mediaPeriodId, MediaLoadData mediaLoadData) {
                     }
                 });
                 break;
 
             default:
                 ExtractorMediaSource.Factory mediaFactory = new ExtractorMediaSource.Factory(dataSourceFactory);
-                source = mediaFactory.createMediaSource(videoUri, handler, null);
+                source = mediaFactory.createMediaSource(videoUri);
                 Uri subtitleUri = subtitleUriString == null ? null : Uri.parse(subtitleUriString);
                 if (subtitleUri != null) {
                     SingleSampleMediaSource.Factory srtMediaFactory = new SingleSampleMediaSource.Factory(dataSourceFactory);
@@ -209,7 +217,6 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
             exoPlayer.setVideoSurface(null);
             exoPlayer.release();
             trackSelector = null;
-            selectionFactory = null;
             exoPlayer = null;
             progressTimer.stop();
         }
@@ -229,7 +236,6 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
 
     private void updateExoPlayerSource(@NonNull final MediaSource source) {
         trackSelector = new DefaultTrackSelector(new AdaptiveTrackSelection.Factory(new DefaultBandwidthMeter()));
-        selectionFactory = new FixedTrackSelection.Factory();
         exoPlayer = ExoPlayerFactory.newSimpleInstance(context, trackSelector);
         exoPlayer.prepare(source);
 
@@ -348,7 +354,7 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
 
         if (audioTrack.language == null || audioTrack.language.length() == 0) {
             TrackGroupArray trackGroups = info.getTrackGroups(audioTrack.id.renderer);
-            SelectionOverride override = new SelectionOverride(selectionFactory, audioTrack.id.group, audioTrack.id.track);
+            DefaultTrackSelector.SelectionOverride override = new DefaultTrackSelector.SelectionOverride(audioTrack.id.group, audioTrack.id.track);
             trackSelector.setSelectionOverride(audioTrack.id.renderer, trackGroups, override);
         } else {
             trackSelector.setParameters(trackSelector.getParameters()
@@ -367,7 +373,7 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
             trackSelector.setRendererDisabled(textTrack.id.renderer, true);
         } else {
             TrackGroupArray trackGroups = info.getTrackGroups(textTrack.id.renderer);
-            SelectionOverride override = new SelectionOverride(selectionFactory, textTrack.id.group, textTrack.id.track);
+            DefaultTrackSelector.SelectionOverride override = new DefaultTrackSelector.SelectionOverride(textTrack.id.group, textTrack.id.track);
             trackSelector.setRendererDisabled(textTrack.id.renderer, false);
             trackSelector.setSelectionOverride(textTrack.id.renderer, trackGroups, override);
         }

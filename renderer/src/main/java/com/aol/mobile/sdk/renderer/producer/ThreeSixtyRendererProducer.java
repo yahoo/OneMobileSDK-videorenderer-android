@@ -5,7 +5,6 @@
 
 package com.aol.mobile.sdk.renderer.producer;
 
-
 import android.content.Context;
 import android.support.annotation.NonNull;
 

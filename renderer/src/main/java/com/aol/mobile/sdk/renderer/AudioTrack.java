@@ -8,7 +8,6 @@ package com.aol.mobile.sdk.renderer;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
-
 public final class AudioTrack {
     @NonNull
     public final String title;
