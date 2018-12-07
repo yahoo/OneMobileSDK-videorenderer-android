@@ -534,7 +534,7 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
 
                             if (!MimeTypes.APPLICATION_CEA608.equals(format.sampleMimeType) || isSelected) {
                                 TextTrack.Id id = new TextTrack.Id(rendererIndex, groupIndex, trackIndex);
-                                TextTrack textTrack = new TextTrack(id, format.language, isSelected);
+                                TextTrack textTrack = new TextTrack(id, format.language, format.language, isSelected);
                                 textTracks.add(textTrack);
                             }
                             break;
@@ -545,7 +545,7 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
 
         TextTrack.Id id = new TextTrack.Id(textRendererIndex, -1, -1);
         Collections.sort(textTracks, (o1, o2) -> o1.title.compareTo(o2.title));
-        textTracks.addFirst(new TextTrack(id, "None", !hasSelectedCc));
+        textTracks.addFirst(new TextTrack(id, "None", "", !hasSelectedCc));
 
         LinkedList<AudioTrack> audioTrackList = new LinkedList<>(audioTracks.values());
         Collections.sort(audioTrackList, (o1, o2) -> o1.title.compareTo(o2.title));
