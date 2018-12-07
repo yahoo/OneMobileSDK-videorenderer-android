@@ -10,21 +10,24 @@ import android.support.annotation.NonNull;
 public final class TextTrack {
     @NonNull
     public final String title;
+    @NonNull
+    public final String language;
     public final boolean isSelected;
     public final boolean isEmpty;
     @NonNull
     final Id id;
 
-    TextTrack(@NonNull Id id, @NonNull String title, boolean isSelected) {
+    TextTrack(@NonNull Id id, @NonNull String title, @NonNull String language, boolean isSelected) {
         this.id = id;
         this.title = title;
+        this.language = language;
         this.isSelected = isSelected;
         this.isEmpty = id.group == -1 && id.track == -1;
     }
 
     @NonNull
     public TextTrack withSelected(boolean isSelected) {
-        return new TextTrack(id, title, isSelected);
+        return new TextTrack(id, title, language, isSelected);
     }
 
     final static class Id {

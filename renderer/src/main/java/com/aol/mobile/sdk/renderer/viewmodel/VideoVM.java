@@ -9,8 +9,10 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
 import com.aol.mobile.sdk.renderer.AudioTrack;
+import com.aol.mobile.sdk.renderer.ExternalSubtitle;
 import com.aol.mobile.sdk.renderer.TextTrack;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class VideoVM {
@@ -22,10 +24,8 @@ public class VideoVM {
     public String videoUrl;
     @Nullable
     public String title;
-    @Nullable
-    public String subtitleLang;
-    @Nullable
-    public String subtitleUrl;
+    @NonNull
+    public List<ExternalSubtitle> externalSubtitles = new ArrayList();
     @Nullable
     public Long seekPosition;
     @Nullable

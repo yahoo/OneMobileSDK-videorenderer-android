@@ -50,16 +50,18 @@ import com.google.android.exoplayer2.util.MimeTypes;
 import com.google.android.exoplayer2.video.VideoListener;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 
 import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
 import static com.aol.mobile.sdk.renderer.viewmodel.VideoVM.Callbacks.Error.CONNECTION;
 import static com.aol.mobile.sdk.renderer.viewmodel.VideoVM.Callbacks.Error.CONTENT;
 import static com.google.android.exoplayer2.Format.createTextSampleFormat;
 import static com.google.android.exoplayer2.RendererCapabilities.FORMAT_HANDLED;
-import static com.google.android.exoplayer2.util.MimeTypes.APPLICATION_SUBRIP;
+import static com.google.android.exoplayer2.util.MimeTypes.*;
 import static com.google.android.exoplayer2.util.Util.areEqual;
 import static com.google.android.exoplayer2.util.Util.getUserAgent;
 import static com.google.android.exoplayer2.util.Util.inferContentType;
@@ -100,10 +102,8 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
     private boolean maintainAspectRatio = true;
     @Nullable
     private String videoUrl;
-    @Nullable
-    private String subtitleUrl;
-    @Nullable
-    private String subtitleLang;
+    @NonNull
+    private List<ExternalSubtitle> externalSubtitles = new ArrayList();
     private boolean endReported;
 
     public ExoVideoRenderer(@NonNull Context context) {
@@ -116,7 +116,7 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
     }
 
     @NonNull
-    private MediaSource buildMediaSource(@NonNull String videoUriString, @Nullable String subtitleLang, @Nullable String subtitleUriString) {
+    private MediaSource buildMediaSource(@NonNull String videoUriString, @NonNull List<ExternalSubtitle> externalSubtitles) {
         DefaultHttpDataSourceFactory httpDataSourceFactory = new DefaultHttpDataSourceFactory(
                 getUserAgent(context, "VideoSDK"), bandwidthMeter,
                 8000, 8000, true);
@@ -143,7 +143,7 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
                     @Override
                     public void onLoadError(int windowIndex, @Nullable MediaSource.MediaPeriodId mediaPeriodId, LoadEventInfo loadEventInfo, MediaLoadData mediaLoadData, IOException error, boolean wasCanceled) {
                         if (shouldPlay && exoPlayer != null && !exoPlayer.getPlayWhenReady()) {
-                            playVideo(videoUrl, ExoVideoRenderer.this.subtitleLang, subtitleUrl);
+                            playVideo(videoUrl, externalSubtitles);
                         }
                     }
                 });
@@ -152,17 +152,36 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
             default:
                 ExtractorMediaSource.Factory mediaFactory = new ExtractorMediaSource.Factory(dataSourceFactory);
                 source = mediaFactory.createMediaSource(videoUri);
-                Uri subtitleUri = subtitleUriString == null ? null : Uri.parse(subtitleUriString);
-                if (subtitleUri != null) {
-                    SingleSampleMediaSource.Factory srtMediaFactory = new SingleSampleMediaSource.Factory(dataSourceFactory);
-                    Format textFormat = createTextSampleFormat(subtitleLang, APPLICATION_SUBRIP, null, C.POSITION_UNSET, C.POSITION_UNSET, subtitleLang, null, 9223372036854775807L);
-                    MediaSource subtitleSource = srtMediaFactory.createMediaSource(subtitleUri, textFormat, C.TIME_UNSET);
-                    source = new MergingMediaSource(source, subtitleSource);
-                }
                 break;
         }
 
+        for (ExternalSubtitle subtitle : externalSubtitles) {
+            String format = getFormat(subtitle.format);
+            if (format != null) {
+                SingleSampleMediaSource.Factory srtMediaFactory = new SingleSampleMediaSource.Factory(dataSourceFactory);
+                Format textFormat = createTextSampleFormat(null, format, Format.NO_VALUE, subtitle.language);
+                MediaSource subtitleSource = srtMediaFactory.createMediaSource(Uri.parse(subtitle.url), textFormat, C.TIME_UNSET);
+                source = new MergingMediaSource(source, subtitleSource);
+            }
+        }
         return source;
+    }
+
+    @Nullable
+    private String getFormat(@NonNull String format) {
+        switch (format.toUpperCase()) {
+            case "SRT":
+                return APPLICATION_SUBRIP;
+            case "TTML":
+                return APPLICATION_TTML;
+            case "VTT":
+                return TEXT_VTT;
+            case "SSA":
+                return TEXT_SSA;
+            case "DFXP":
+                return APPLICATION_TTML;
+        }
+        return null;
     }
 
     protected void setRenderer(@NonNull View renderer) {
@@ -173,7 +192,7 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
         addView(subtitleView, MATCH_PARENT, MATCH_PARENT);
     }
 
-    private void playVideo(@Nullable String videoUrl, @Nullable String subLang, @Nullable String subtitleUrl) {
+    private void playVideo(@Nullable String videoUrl, @NonNull List<ExternalSubtitle> externalSubtitles) {
         duration = null;
         if (exoPlayer != null) {
             if (streamRenderer instanceof FlatRendererView) {
@@ -193,8 +212,8 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
         }
 
         this.videoUrl = videoUrl;
-        this.subtitleUrl = subtitleUrl;
-        this.subtitleLang = subLang;
+        this.externalSubtitles.clear();
+        this.externalSubtitles.addAll(externalSubtitles);
         if (videoUrl == null) {
             if (callbacks != null) {
                 callbacks.onVideoFrameGone();
@@ -202,7 +221,7 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
             return;
         }
 
-        updateExoPlayerSource(buildMediaSource(videoUrl, subtitleLang, subtitleUrl));
+        updateExoPlayerSource(buildMediaSource(videoUrl, this.externalSubtitles));
     }
 
     private void updateExoPlayerSource(@NonNull final MediaSource source) {
@@ -271,7 +290,7 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
         this.scalable = videoVM.isScalable;
         this.maintainAspectRatio = videoVM.isMaintainAspectRatio;
         if (!areEqual(videoUrl, videoVM.videoUrl)) {
-            playVideo(videoVM.videoUrl, videoVM.subtitleLang, videoVM.subtitleUrl);
+            playVideo(videoVM.videoUrl, videoVM.externalSubtitles);
         }
 
         Long seekPos = videoVM.seekPosition;
@@ -515,7 +534,7 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
 
                             if (!MimeTypes.APPLICATION_CEA608.equals(format.sampleMimeType) || isSelected) {
                                 TextTrack.Id id = new TextTrack.Id(rendererIndex, groupIndex, trackIndex);
-                                TextTrack textTrack = new TextTrack(id, format.language, isSelected);
+                                TextTrack textTrack = new TextTrack(id, format.language, format.language, isSelected);
                                 textTracks.add(textTrack);
                             }
                             break;
@@ -526,7 +545,7 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
 
         TextTrack.Id id = new TextTrack.Id(textRendererIndex, -1, -1);
         Collections.sort(textTracks, (o1, o2) -> o1.title.compareTo(o2.title));
-        textTracks.addFirst(new TextTrack(id, "None", !hasSelectedCc));
+        textTracks.addFirst(new TextTrack(id, "None", "", !hasSelectedCc));
 
         LinkedList<AudioTrack> audioTrackList = new LinkedList<>(audioTracks.values());
         Collections.sort(audioTrackList, (o1, o2) -> o1.title.compareTo(o2.title));
@@ -536,17 +555,12 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
     @Override
     public void onPlayerError(ExoPlaybackException error) {
         if (error.getCause() != null && error.getCause().getClass() == BehindLiveWindowException.class) {
-            playVideo(videoUrl, subtitleLang, subtitleUrl);
+            playVideo(videoUrl, externalSubtitles);
             return;
         }
 
         String message = error.getCause() == null ? null : error.getCause().getMessage();
         boolean isConnectionError = hasConnectionError(error.getMessage()) || hasConnectionError(message);
-
-        if (isConnectionError && subtitleUrl != null) {
-            playVideo(videoUrl, null, null);
-            return;
-        }
 
         if (callbacks != null) {
             if (isConnectionError) {
