@@ -61,7 +61,7 @@ import static com.aol.mobile.sdk.renderer.viewmodel.VideoVM.Callbacks.Error.CONN
 import static com.aol.mobile.sdk.renderer.viewmodel.VideoVM.Callbacks.Error.CONTENT;
 import static com.google.android.exoplayer2.Format.createTextSampleFormat;
 import static com.google.android.exoplayer2.RendererCapabilities.FORMAT_HANDLED;
-import static com.google.android.exoplayer2.util.MimeTypes.APPLICATION_SUBRIP;
+import static com.google.android.exoplayer2.util.MimeTypes.*;
 import static com.google.android.exoplayer2.util.Util.areEqual;
 import static com.google.android.exoplayer2.util.Util.getUserAgent;
 import static com.google.android.exoplayer2.util.Util.inferContentType;
@@ -156,12 +156,32 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
         }
 
         for (ExternalSubtitle subtitle : externalSubtitles) {
-            SingleSampleMediaSource.Factory srtMediaFactory = new SingleSampleMediaSource.Factory(dataSourceFactory);
-            Format textFormat = createTextSampleFormat(null, APPLICATION_SUBRIP, Format.NO_VALUE, subtitle.language);
-            MediaSource subtitleSource = srtMediaFactory.createMediaSource(Uri.parse(subtitle.url), textFormat, C.TIME_UNSET);
-            source = new MergingMediaSource(source, subtitleSource);
+            String format = getFormat(subtitle.format);
+            if (format != null) {
+                SingleSampleMediaSource.Factory srtMediaFactory = new SingleSampleMediaSource.Factory(dataSourceFactory);
+                Format textFormat = createTextSampleFormat(null, format, Format.NO_VALUE, subtitle.language);
+                MediaSource subtitleSource = srtMediaFactory.createMediaSource(Uri.parse(subtitle.url), textFormat, C.TIME_UNSET);
+                source = new MergingMediaSource(source, subtitleSource);
+            }
         }
         return source;
+    }
+
+    @Nullable
+    private String getFormat(@NonNull String format) {
+        switch (format.toUpperCase()) {
+            case "SRT":
+                return APPLICATION_SUBRIP;
+            case "TTML":
+                return APPLICATION_TTML;
+            case "VTT":
+                return TEXT_VTT;
+            case "SSA":
+                return TEXT_SSA;
+            case "DFXP":
+                return APPLICATION_TTML;
+        }
+        return null;
     }
 
     protected void setRenderer(@NonNull View renderer) {
