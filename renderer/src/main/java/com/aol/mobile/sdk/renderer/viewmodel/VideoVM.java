@@ -25,7 +25,7 @@ public class VideoVM {
     @Nullable
     public String title;
     @NonNull
-    public List<ExternalSubtitle> externalSubtitles = new ArrayList();
+    public List<ExternalSubtitle> externalSubtitles = new ArrayList<>();
     @Nullable
     public Long seekPosition;
     @Nullable

@@ -55,13 +55,17 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 
 import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
 import static com.aol.mobile.sdk.renderer.viewmodel.VideoVM.Callbacks.Error.CONNECTION;
 import static com.aol.mobile.sdk.renderer.viewmodel.VideoVM.Callbacks.Error.CONTENT;
 import static com.google.android.exoplayer2.Format.createTextSampleFormat;
 import static com.google.android.exoplayer2.RendererCapabilities.FORMAT_HANDLED;
-import static com.google.android.exoplayer2.util.MimeTypes.*;
+import static com.google.android.exoplayer2.util.MimeTypes.APPLICATION_SUBRIP;
+import static com.google.android.exoplayer2.util.MimeTypes.APPLICATION_TTML;
+import static com.google.android.exoplayer2.util.MimeTypes.TEXT_SSA;
+import static com.google.android.exoplayer2.util.MimeTypes.TEXT_VTT;
 import static com.google.android.exoplayer2.util.Util.areEqual;
 import static com.google.android.exoplayer2.util.Util.getUserAgent;
 import static com.google.android.exoplayer2.util.Util.inferContentType;
@@ -103,7 +107,7 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
     @Nullable
     private String videoUrl;
     @NonNull
-    private List<ExternalSubtitle> externalSubtitles = new ArrayList();
+    private List<ExternalSubtitle> externalSubtitles = new ArrayList<>();
     private boolean endReported;
 
     public ExoVideoRenderer(@NonNull Context context) {
@@ -534,7 +538,7 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
 
                             if (!MimeTypes.APPLICATION_CEA608.equals(format.sampleMimeType) || isSelected) {
                                 TextTrack.Id id = new TextTrack.Id(rendererIndex, groupIndex, trackIndex);
-                                TextTrack textTrack = new TextTrack(id, format.language, format.language, isSelected);
+                                TextTrack textTrack = new TextTrack(id, getDisplayLanguage(format.language), format.language, isSelected);
                                 textTracks.add(textTrack);
                             }
                             break;
@@ -550,6 +554,18 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
         LinkedList<AudioTrack> audioTrackList = new LinkedList<>(audioTracks.values());
         Collections.sort(audioTrackList, (o1, o2) -> o1.title.compareTo(o2.title));
         callbacks.onTrackInfoAvailable(audioTrackList, textTracks);
+    }
+
+    @NonNull
+    private String getDisplayLanguage(@Nullable String language) {
+        if (language == null) return "";
+
+        try {
+            Locale locale = new Locale(language);
+            return locale.getDisplayLanguage();
+        } catch (Exception e) {
+            return language;
+        }
     }
 
     @Override
