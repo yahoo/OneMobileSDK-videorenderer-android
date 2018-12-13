@@ -9,6 +9,7 @@ import android.content.Context;
 import android.graphics.Matrix;
 import android.net.Uri;
 import android.os.Handler;
+import android.os.Looper;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.view.Surface;
@@ -18,13 +19,16 @@ import android.widget.FrameLayout;
 import com.aol.mobile.sdk.renderer.gles.VideoSurfaceListener;
 import com.aol.mobile.sdk.renderer.internal.FlatRendererView;
 import com.aol.mobile.sdk.renderer.internal.GlEsRendererView;
+import com.aol.mobile.sdk.renderer.internal.ttml.TtmlDecoder;
 import com.aol.mobile.sdk.renderer.viewmodel.VideoVM;
 import com.google.android.exoplayer2.C;
+import com.google.android.exoplayer2.DefaultRenderersFactory;
 import com.google.android.exoplayer2.ExoPlaybackException;
 import com.google.android.exoplayer2.ExoPlayerFactory;
 import com.google.android.exoplayer2.Format;
 import com.google.android.exoplayer2.PlaybackParameters;
 import com.google.android.exoplayer2.Player;
+import com.google.android.exoplayer2.Renderer;
 import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.Timeline;
 import com.google.android.exoplayer2.source.BehindLiveWindowException;
@@ -36,6 +40,19 @@ import com.google.android.exoplayer2.source.SingleSampleMediaSource;
 import com.google.android.exoplayer2.source.TrackGroup;
 import com.google.android.exoplayer2.source.TrackGroupArray;
 import com.google.android.exoplayer2.source.hls.HlsMediaSource;
+import com.google.android.exoplayer2.text.SubtitleDecoder;
+import com.google.android.exoplayer2.text.SubtitleDecoderFactory;
+import com.google.android.exoplayer2.text.TextOutput;
+import com.google.android.exoplayer2.text.TextRenderer;
+import com.google.android.exoplayer2.text.cea.Cea608Decoder;
+import com.google.android.exoplayer2.text.cea.Cea708Decoder;
+import com.google.android.exoplayer2.text.dvb.DvbDecoder;
+import com.google.android.exoplayer2.text.pgs.PgsDecoder;
+import com.google.android.exoplayer2.text.ssa.SsaDecoder;
+import com.google.android.exoplayer2.text.subrip.SubripDecoder;
+import com.google.android.exoplayer2.text.tx3g.Tx3gDecoder;
+import com.google.android.exoplayer2.text.webvtt.Mp4WebvttDecoder;
+import com.google.android.exoplayer2.text.webvtt.WebvttDecoder;
 import com.google.android.exoplayer2.trackselection.AdaptiveTrackSelection;
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
 import com.google.android.exoplayer2.trackselection.MappingTrackSelector;
@@ -161,31 +178,33 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
 
         for (ExternalSubtitle subtitle : externalSubtitles) {
             String format = getFormat(subtitle.format);
-            if (format != null) {
-                SingleSampleMediaSource.Factory srtMediaFactory = new SingleSampleMediaSource.Factory(dataSourceFactory);
-                Format textFormat = createTextSampleFormat(null, format, Format.NO_VALUE, subtitle.language);
-                MediaSource subtitleSource = srtMediaFactory.createMediaSource(Uri.parse(subtitle.url), textFormat, C.TIME_UNSET);
-                source = new MergingMediaSource(source, subtitleSource);
-            }
+            SingleSampleMediaSource.Factory srtMediaFactory = new SingleSampleMediaSource.Factory(dataSourceFactory);
+            Format textFormat = createTextSampleFormat(null, format, Format.NO_VALUE, subtitle.language);
+            MediaSource subtitleSource = srtMediaFactory.createMediaSource(Uri.parse(subtitle.url), textFormat, C.TIME_UNSET);
+            source = new MergingMediaSource(source, subtitleSource);
         }
         return source;
     }
 
-    @Nullable
+    @NonNull
     private String getFormat(@NonNull String format) {
         switch (format.toUpperCase()) {
             case "SRT":
                 return APPLICATION_SUBRIP;
-            case "TTML":
-                return APPLICATION_TTML;
+
             case "VTT":
                 return TEXT_VTT;
+
             case "SSA":
                 return TEXT_SSA;
+
+            case "TT":
             case "DFXP":
+            case "TTML":
                 return APPLICATION_TTML;
         }
-        return null;
+
+        return format;
     }
 
     protected void setRenderer(@NonNull View renderer) {
@@ -230,7 +249,62 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
 
     private void updateExoPlayerSource(@NonNull final MediaSource source) {
         trackSelector = new DefaultTrackSelector(new AdaptiveTrackSelection.Factory(bandwidthMeter));
-        exoPlayer = ExoPlayerFactory.newSimpleInstance(context, trackSelector);
+        exoPlayer = ExoPlayerFactory.newSimpleInstance(new DefaultRenderersFactory(context) {
+            @Override
+            protected void buildTextRenderers(Context context, TextOutput output, Looper outputLooper, int extensionRendererMode, ArrayList<Renderer> out) {
+                out.add(new TextRenderer(output, outputLooper, new SubtitleDecoderFactory() {
+
+                    @Override
+                    public boolean supportsFormat(Format format) {
+                        String mimeType = format.sampleMimeType;
+                        return MimeTypes.TEXT_VTT.equals(mimeType)
+                                || MimeTypes.TEXT_SSA.equals(mimeType)
+                                || MimeTypes.APPLICATION_TTML.equals(mimeType)
+                                || MimeTypes.APPLICATION_MP4VTT.equals(mimeType)
+                                || MimeTypes.APPLICATION_SUBRIP.equals(mimeType)
+                                || MimeTypes.APPLICATION_TX3G.equals(mimeType)
+                                || MimeTypes.APPLICATION_CEA608.equals(mimeType)
+                                || MimeTypes.APPLICATION_MP4CEA608.equals(mimeType)
+                                || MimeTypes.APPLICATION_CEA708.equals(mimeType)
+                                || MimeTypes.APPLICATION_DVBSUBS.equals(mimeType)
+                                || MimeTypes.APPLICATION_PGS.equals(mimeType);
+                    }
+
+                    @Override
+                    public SubtitleDecoder createDecoder(Format format) {
+                        if (format == null || format.sampleMimeType == null)
+                            throw new IllegalArgumentException("Attempted to create decoder for unsupported format");
+
+                        switch (format.sampleMimeType) {
+                            case MimeTypes.TEXT_VTT:
+                                return new WebvttDecoder();
+                            case MimeTypes.TEXT_SSA:
+                                return new SsaDecoder(format.initializationData);
+                            case MimeTypes.APPLICATION_MP4VTT:
+                                return new Mp4WebvttDecoder();
+                            case MimeTypes.APPLICATION_TTML:
+                                return new TtmlDecoder();
+                            case MimeTypes.APPLICATION_SUBRIP:
+                                return new SubripDecoder();
+                            case MimeTypes.APPLICATION_TX3G:
+                                return new Tx3gDecoder(format.initializationData);
+                            case MimeTypes.APPLICATION_CEA608:
+                            case MimeTypes.APPLICATION_MP4CEA608:
+                                return new Cea608Decoder(format.sampleMimeType, format.accessibilityChannel);
+                            case MimeTypes.APPLICATION_CEA708:
+                                return new Cea708Decoder(format.accessibilityChannel);
+                            case MimeTypes.APPLICATION_DVBSUBS:
+                                return new DvbDecoder(format.initializationData);
+                            case MimeTypes.APPLICATION_PGS:
+                                return new PgsDecoder();
+                            default:
+                                throw new IllegalArgumentException(
+                                        "Attempted to create decoder for unsupported format");
+                        }
+                    }
+                }));
+            }
+        }, trackSelector);
         exoPlayer.prepare(source);
 
         for (int rendererIndex = 0; rendererIndex < exoPlayer.getRendererCount(); rendererIndex++) {
