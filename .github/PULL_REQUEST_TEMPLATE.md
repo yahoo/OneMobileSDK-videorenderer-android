@@ -1,3 +1,3 @@
-@vidible/mobile-sdk-team: Ready for review.
+@VerizonAdPlatforms/mobile-sdk-developers: Ready for review.
 
-[JIRA](https://jira.ops.aol.com/browse/OMSDK-)
+[JIRA](https://jira.ouroath.com/browse/VSDK-XXXX)
