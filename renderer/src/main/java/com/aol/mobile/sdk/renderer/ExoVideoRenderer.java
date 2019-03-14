@@ -360,6 +360,7 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
         if (areVisible != videoVM.areSubtitlesEnabled) {
             subtitleView.setVisibility(videoVM.areSubtitlesEnabled ? VISIBLE : GONE);
         }
+        subtitleView.setApplyEmbeddedStyles(!videoVM.preferAccessibilityCcStyle);
 
         if (videoVM.callbacks != null) {
             renderCallbacks(videoVM.callbacks);

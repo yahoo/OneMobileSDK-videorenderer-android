@@ -16,16 +16,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class VideoVM {
-    @Nullable
-    public AudioTrack selectedAudioTrack;
+    public boolean preferAccessibilityCcStyle;
+    @NonNull
+    public List<ExternalSubtitle> externalSubtitles = new ArrayList<>();
     @Nullable
     public TextTrack selectedTextTrack;
+    @Nullable
+    public AudioTrack selectedAudioTrack;
     @Nullable
     public String videoUrl;
     @Nullable
     public String title;
-    @NonNull
-    public List<ExternalSubtitle> externalSubtitles = new ArrayList<>();
     @Nullable
     public Long seekPosition;
     @Nullable
