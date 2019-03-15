@@ -15,6 +15,7 @@ androidCi {
 android {
     defaultConfig {
         minSdkVersion 16
+        compileSdkVersion 28
 
         buildConfigField "String", 'FLAT_RENDERER', "\"com.onemobilesdk.videorenderer.flat@$version\""
         buildConfigField "String", 'THREE_SIXTY_RENDERER', "\"com.onemobilesdk.videorenderer.360@$version\""
