@@ -42,6 +42,7 @@ public class VideoVM {
     public boolean isCasting;
     public boolean isActive;
     public boolean isAd;
+    public float playbackSpeed;
     @Nullable
     public Callbacks callbacks;
 

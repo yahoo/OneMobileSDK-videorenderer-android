@@ -132,7 +132,6 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
 
         subtitleView = new SubtitleView(context);
 
-
         this.context = context;
     }
 
@@ -399,6 +398,9 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
         if (videoVM.selectedTextTrack != textTrack) {
             textTrack = videoVM.selectedTextTrack;
             switchToTextTrack(textTrack);
+        }
+        if (exoPlayer != null && exoPlayer.getPlaybackParameters().speed != videoVM.playbackSpeed){
+            exoPlayer.setPlaybackParameters(new PlaybackParameters(videoVM.playbackSpeed));
         }
     }
 
