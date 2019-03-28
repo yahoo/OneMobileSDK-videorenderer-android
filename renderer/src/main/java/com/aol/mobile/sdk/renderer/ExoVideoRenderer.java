@@ -41,6 +41,7 @@ import com.google.android.exoplayer2.source.TrackGroup;
 import com.google.android.exoplayer2.source.TrackGroupArray;
 import com.google.android.exoplayer2.source.hls.HlsMediaSource;
 import com.google.android.exoplayer2.text.SubtitleDecoder;
+import com.google.android.exoplayer2.text.SubtitleDecoderException;
 import com.google.android.exoplayer2.text.SubtitleDecoderFactory;
 import com.google.android.exoplayer2.text.TextOutput;
 import com.google.android.exoplayer2.text.TextRenderer;
@@ -235,8 +236,10 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
         }
 
         this.videoUrl = videoUrl;
-        this.externalSubtitles.clear();
-        this.externalSubtitles.addAll(externalSubtitles);
+        if (this.externalSubtitles != externalSubtitles) {
+            this.externalSubtitles.clear();
+            this.externalSubtitles.addAll(externalSubtitles);
+        }
         if (videoUrl == null) {
             if (callbacks != null) {
                 callbacks.onVideoFrameGone();
@@ -346,7 +349,7 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
 
         if (streamRenderer instanceof FlatRendererView) {
             Matrix matrix = new Matrix();
-            matrix.setScale(scaleX, scaleY, viewportWidth / 2, viewportHeight / 2);
+            matrix.setScale(scaleX, scaleY, viewportWidth / 2f, viewportHeight / 2f);
 
             ((FlatRendererView) streamRenderer).setTransform(matrix);
         }
@@ -647,6 +650,16 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
     public void onPlayerError(ExoPlaybackException error) {
         if (error.getCause() != null && error.getCause().getClass() == BehindLiveWindowException.class) {
             playVideo(videoUrl, externalSubtitles);
+            return;
+        }
+
+        if (error.getCause() != null && error.getCause().getClass() == SubtitleDecoderException.class) {
+            if (callbacks != null && textTrack != null) {
+                callbacks.onTextTrackFailed(textTrack);
+            }
+            long position = exoPlayer != null ? exoPlayer.getContentPosition() : 0;
+            playVideo(videoUrl, externalSubtitles);
+            seekTo(position);
             return;
         }
 

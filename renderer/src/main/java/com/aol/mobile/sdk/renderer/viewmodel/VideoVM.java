@@ -121,6 +121,13 @@ public class VideoVM {
         void onTrackInfoAvailable(@NonNull List<AudioTrack> audioTrackList, @NonNull List<TextTrack> textTrackList);
 
         /**
+         * Fired when cc track is failed
+         *
+         * @param textTrack failed cc track
+         */
+        void onTextTrackFailed(@NonNull TextTrack textTrack);
+
+        /**
          * Fired when actual frame of video is visible to user.
          */
         void onVideoFrameVisible();
