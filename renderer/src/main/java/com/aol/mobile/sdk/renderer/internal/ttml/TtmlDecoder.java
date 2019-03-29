@@ -331,6 +331,9 @@ public final class TtmlDecoder extends SimpleSubtitleDecoder {
                 xmlParser.next();
                 eventType = xmlParser.getEventType();
             }
+            if (ttmlSubtitle == null){
+                throw new SubtitleDecoderException("Unable to decode source", null);
+            }
             return ttmlSubtitle;
         } catch (XmlPullParserException xppe) {
             throw new SubtitleDecoderException("Unable to decode source", xppe);
