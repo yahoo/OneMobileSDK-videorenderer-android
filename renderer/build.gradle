@@ -3,16 +3,34 @@
  * Licensed under the terms of the MIT License. See LICENSE.md file in project root for terms.
  */
 
-apply plugin: 'android-ci-library'
+apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
+apply plugin: 'kotlin-kapt'
+apply plugin: 'digital.wup.android-maven-publish'
+apply plugin: 'org.ajoberstar.git-publish'
+apply plugin: 'com.selesse.git.changelog'
 
-androidCi {
-    groupId = 'com.aol.one.publishers.android'
-    artifactId = 'renderer'
-    githubRepo = 'OathAdPlatforms/OneMobileSDK-releases-android'
-    apiTrimNamespaces.add("com.aol.mobile.sdk.renderer")
-}
+def isCommitTagged = "git describe --exact-match --tags HEAD".execute(null, projectDir).waitFor() == 0
+def gitTag = "git describe --tags --abbrev=0".execute(null, projectDir).text.trim() ?: "1.0"
+def lastDotIndex = gitTag.lastIndexOf(".")
+def lastNumber = gitTag.substring(lastDotIndex + 1).toInteger()
+def nextVersion = gitTag.substring(0, lastDotIndex) + ".${lastNumber + 1}"
+def gitBasedVersion = isCommitTagged ? gitTag : "$nextVersion-SNAPSHOT"
+
+println "isTag:$isCommitTagged tagVersion:$gitTag next:$nextVersion buildVersion:$gitBasedVersion"
+
+group = 'com.aol.one.publishers.android'
+version = gitBasedVersion
+project.ext.artifactId = 'renderer'
 
 android {
+    compileSdkVersion 28
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
     defaultConfig {
         minSdkVersion 16
         compileSdkVersion 28
@@ -34,6 +52,7 @@ android {
 }
 
 dependencies {
+    compileOnly 'com.aol.one.publishers.android:annotations:1.4'
     compileOnly "com.android.support:support-annotations:$support_version"
     compileOnly "com.android.support:support-v4:$support_version"
 
@@ -42,8 +61,8 @@ dependencies {
     implementation "com.google.android.exoplayer:exoplayer-ui:$exo_version"
 
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version"
-    testImplementation "org.assertj:assertj-core:3.9.1"
-    testImplementation "org.mockito:mockito-core:2.16.0"
+    testImplementation 'org.assertj:assertj-core:3.9.1'
+    testImplementation 'org.mockito:mockito-core:2.16.0'
 }
 
 configurations.all {
@@ -55,3 +74,64 @@ configurations.all {
         }
     }
 }
+
+// Changelog generation
+changelog {
+    title = "# O2 ${project.ext.artifactId.capitalize()} release notes"
+    outputDirectory = file("${rootProject.buildDir}/maven")
+    fileName = "${project.ext.artifactId.toUpperCase()} CHANGELOG.md"
+
+    commitFormat = "%s"
+
+    markdown {
+        commitFormat = "- %s"
+    }
+
+    includeLines = {
+        !it.contains("Merge pull request #")
+    }
+}
+generateChangelog.dependsOn "gitPublishReset"
+
+// Publication to local maven
+publishing {
+    publications {
+        android.libraryVariants.all { variant ->
+            "maven${variant.name.capitalize()}Aar"(MavenPublication) {
+                if (variant.flavorName == null ||
+                        variant.flavorName == "" ||
+                        variant.flavorName == "full" ||
+                        variant.flavorName == "default") {
+
+                    artifactId project.ext.artifactId
+                } else {
+                    artifactId "${project.ext.artifactId}-${variant.flavorName.toLowerCase()}"
+                }
+
+                groupId project.group
+                version project.version
+
+                from components.findByName("android${variant.name.capitalize()}")
+            }
+        }
+    }
+
+    repositories {
+        maven { "${rootProject.buildDir}/maven/" }
+    }
+}
+publish.dependsOn "gitPublishReset"
+
+// Publish to releases github
+gitPublish {
+    repoUri "https://github.com/VerizonAdPlatforms/OneMobileSDK-releases-android.git"
+    branch "maven"
+    repoDir file("${rootProject.buildDir}/maven")
+
+    preserve {
+        include "**/*"
+    }
+
+    commitMessage = "Artifact ${project.group}:${project.ext.artifactId}:${project.version}"
+}
+gitPublishCommit.dependsOn "publish"
