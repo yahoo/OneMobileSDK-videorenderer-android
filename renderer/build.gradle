@@ -97,27 +97,29 @@ generateChangelog.dependsOn "gitPublishReset"
 publishing {
     publications {
         android.libraryVariants.all { variant ->
-            "maven${variant.name.capitalize()}Aar"(MavenPublication) {
-                if (variant.flavorName == null ||
-                        variant.flavorName == "" ||
-                        variant.flavorName == "full" ||
-                        variant.flavorName == "default") {
+            if (variant.buildType.name == "release") {
+                "maven${variant.name.capitalize()}Aar"(MavenPublication) {
+                    if (variant.flavorName == null ||
+                            variant.flavorName == "" ||
+                            variant.flavorName == "full" ||
+                            variant.flavorName == "default") {
 
-                    artifactId project.ext.artifactId
-                } else {
-                    artifactId "${project.ext.artifactId}-${variant.flavorName.toLowerCase()}"
+                        artifactId project.ext.artifactId
+                    } else {
+                        artifactId "${project.ext.artifactId}-${variant.flavorName.toLowerCase()}"
+                    }
+
+                    groupId project.group
+                    version project.version
+
+                    from components.findByName("android${variant.name.capitalize()}")
                 }
-
-                groupId project.group
-                version project.version
-
-                from components.findByName("android${variant.name.capitalize()}")
             }
         }
     }
 
     repositories {
-        maven { "${rootProject.buildDir}/maven/" }
+        maven { url = "${rootProject.buildDir}/maven/" }
     }
 }
 publish.dependsOn "gitPublishReset"
