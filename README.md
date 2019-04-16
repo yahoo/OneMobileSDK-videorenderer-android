@@ -1,1 +1,1 @@
-# OneMobileSDK-videorenderer-android [![Build Status](https://travis-ci.com/OathAdPlatforms/OneMobileSDK-videorenderer-android.svg?branch=master)](https://travis-ci.com/OathAdPlatforms/OneMobileSDK-videorenderer-android)
+# OneMobileSDK-videorenderer-android [![Build Status](https://travis-ci.com/VerizonAdPlatforms/OneMobileSDK-videorenderer-android.svg?branch=master)](https://travis-ci.com/VerizonAdPlatforms/OneMobileSDK-videorenderer-android)
