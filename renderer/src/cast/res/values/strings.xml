@@ -1,0 +1,9 @@
+<!--
+  ~ Copyright 2018, Oath Inc.
+  ~ Licensed under the terms of the MIT License. See LICENSE.md file in project root for terms.
+  -->
+
+<resources>
+    <string name="cast_view_text">This video is playing on Chromecast</string>
+    <string name="app_id">F53593E4</string>
+</resources>

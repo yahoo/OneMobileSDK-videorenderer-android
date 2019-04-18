@@ -30,7 +30,7 @@ cache:
     - $HOME/.gradle/wrapper/
     - $HOME/.android/build-cache
 
-script: ./gradlew lintRelease testRelease
+script: ./gradlew testFullRelease testCastRelease
 
 deploy:
   - provider: script

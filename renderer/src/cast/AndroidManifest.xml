@@ -1,0 +1,14 @@
+<!--
+  ~ Copyright 2018, Oath Inc.
+  ~ Licensed under the terms of the MIT License. See LICENSE.md file in project root for terms.
+  -->
+
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.aol.mobile.sdk.renderer">
+
+    <application>
+        <meta-data
+            android:name="com.google.android.gms.cast.framework.OPTIONS_PROVIDER_CLASS_NAME"
+            android:value="com.aol.mobile.sdk.renderer.chromecast.CastOptionsProvider" />
+    </application>
+</manifest>
