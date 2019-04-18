@@ -40,4 +40,5 @@ captures/
 /src/main/java/com/aol/mobile/sdk/player/metrics/pixel/TrackingPixelsGenerator.java
 /renderer/proguard-classes-*.pro
 /.idea/codeStyles/*
+/.idea/markdown-navigator/*
 /.idea/caches/*

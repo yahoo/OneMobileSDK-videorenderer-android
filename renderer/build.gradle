@@ -4,8 +4,6 @@
  */
 
 apply plugin: 'com.android.library'
-apply plugin: 'kotlin-android'
-apply plugin: 'kotlin-kapt'
 apply plugin: 'digital.wup.android-maven-publish'
 apply plugin: 'org.ajoberstar.git-publish'
 apply plugin: 'com.selesse.git.changelog'
@@ -49,12 +47,21 @@ android {
     lintOptions {
         abortOnError false
     }
+
+    flavorDimensions "mode"
+
+    productFlavors {
+        full { dimension "mode" }
+        cast { dimension "mode" }
+    }
 }
 
 dependencies {
     compileOnly 'com.aol.one.publishers.android:annotations:1.4'
     compileOnly "com.android.support:support-annotations:$support_version"
     compileOnly "com.android.support:support-v4:$support_version"
+
+    castImplementation "com.google.android.gms:play-services-cast-framework:16.1.2"
 
     implementation "com.google.android.exoplayer:exoplayer-core:$exo_version"
     implementation "com.google.android.exoplayer:exoplayer-hls:$exo_version"

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018, Oath Inc.
+ * Copyright 2019, Oath Inc.
  * Licensed under the terms of the MIT License. See LICENSE.md file in project root for terms.
  */
 
@@ -14,7 +14,6 @@ import com.aol.mobile.sdk.renderer.internal.FlatRendererView;
 
 @PublicApi
 public final class ExoFlatRenderer extends ExoVideoRenderer {
-
     public ExoFlatRenderer(@NonNull Context context) {
         super(context);
         View flatRendererView = new FlatRendererView(context, this);
