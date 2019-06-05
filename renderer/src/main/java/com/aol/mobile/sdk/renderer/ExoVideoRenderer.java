@@ -78,6 +78,9 @@ import java.util.Locale;
 import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
 import static com.aol.mobile.sdk.renderer.viewmodel.VideoVM.Callbacks.Error.CONNECTION;
 import static com.aol.mobile.sdk.renderer.viewmodel.VideoVM.Callbacks.Error.CONTENT;
+import static com.google.android.exoplayer2.DefaultRenderersFactory.EXTENSION_RENDERER_MODE_OFF;
+import static com.google.android.exoplayer2.DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON;
+import static com.google.android.exoplayer2.DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER;
 import static com.google.android.exoplayer2.Format.createTextSampleFormat;
 import static com.google.android.exoplayer2.RendererCapabilities.FORMAT_HANDLED;
 import static com.google.android.exoplayer2.util.MimeTypes.APPLICATION_SUBRIP;
@@ -127,6 +130,7 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
     @NonNull
     private List<ExternalSubtitle> externalSubtitles = new ArrayList<>();
     private boolean endReported;
+    private int extensionRendererMode = EXTENSION_RENDERER_MODE_ON;
 
     public ExoVideoRenderer(@NonNull Context context) {
         super(context);
@@ -252,7 +256,7 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
 
     private void updateExoPlayerSource(@NonNull final MediaSource source) {
         trackSelector = new DefaultTrackSelector(new AdaptiveTrackSelection.Factory(bandwidthMeter));
-        exoPlayer = ExoPlayerFactory.newSimpleInstance(new DefaultRenderersFactory(context) {
+        exoPlayer = ExoPlayerFactory.newSimpleInstance(new DefaultRenderersFactory(context, extensionRendererMode) {
             @Override
             protected void buildTextRenderers(Context context, TextOutput output, Looper outputLooper, int extensionRendererMode, ArrayList<Renderer> out) {
                 out.add(new TextRenderer(output, outputLooper, new SubtitleDecoderFactory() {
@@ -372,6 +376,7 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
         this.scalable = videoVM.isScalable;
         this.maintainAspectRatio = videoVM.isMaintainAspectRatio;
         if (!areEqual(videoUrl, videoVM.videoUrl)) {
+            extensionRendererMode = videoVM.useSoftwareCodec ? EXTENSION_RENDERER_MODE_PREFER : EXTENSION_RENDERER_MODE_ON;
             playVideo(videoVM.videoUrl, videoVM.externalSubtitles);
         }
 
