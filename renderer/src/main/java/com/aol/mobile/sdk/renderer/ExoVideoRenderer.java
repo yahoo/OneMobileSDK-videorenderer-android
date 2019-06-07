@@ -91,7 +91,9 @@ import static com.google.android.exoplayer2.util.Util.inferContentType;
 class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfaceListener,
         Player.EventListener, VideoListener {
     @NonNull
-    private final DefaultBandwidthMeter bandwidthMeter = new DefaultBandwidthMeter();
+    private final DefaultBandwidthMeter bandwidthMeter = new DefaultBandwidthMeter.Builder()
+            .setInitialBitrateEstimate(12094635)
+            .build();
     @NonNull
     private final SubtitleView subtitleView;
     @Nullable
@@ -132,7 +134,6 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
         super(context);
 
         subtitleView = new SubtitleView(context);
-
 
         this.context = context;
     }
