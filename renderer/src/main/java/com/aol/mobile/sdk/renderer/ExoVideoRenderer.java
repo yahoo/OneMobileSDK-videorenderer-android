@@ -78,7 +78,6 @@ import java.util.Locale;
 import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
 import static com.aol.mobile.sdk.renderer.viewmodel.VideoVM.Callbacks.Error.CONNECTION;
 import static com.aol.mobile.sdk.renderer.viewmodel.VideoVM.Callbacks.Error.CONTENT;
-import static com.google.android.exoplayer2.DefaultRenderersFactory.EXTENSION_RENDERER_MODE_OFF;
 import static com.google.android.exoplayer2.DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON;
 import static com.google.android.exoplayer2.DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER;
 import static com.google.android.exoplayer2.Format.createTextSampleFormat;
@@ -94,15 +93,14 @@ import static com.google.android.exoplayer2.util.Util.inferContentType;
 class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfaceListener,
         Player.EventListener, VideoListener {
     @NonNull
-    private final DefaultBandwidthMeter bandwidthMeter = new DefaultBandwidthMeter.Builder()
-            .setInitialBitrateEstimate(12094635)
-            .build();
-    @NonNull
     private final SubtitleView subtitleView;
     @Nullable
     protected VideoVM.Callbacks callbacks;
     @Nullable
     private DefaultTrackSelector trackSelector;
+    @NonNull
+    private DefaultBandwidthMeter bandwidthMeter = new DefaultBandwidthMeter();
+    private long bitrateEstimate = bandwidthMeter.getBitrateEstimate();
     @Nullable
     private SimpleExoPlayer exoPlayer;
     @NonNull
@@ -364,6 +362,11 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
     }
 
     public void render(@NonNull VideoVM videoVM) {
+        if (videoVM.bandwidthEstimate != bitrateEstimate) {
+            bitrateEstimate = videoVM.bandwidthEstimate;
+            bandwidthMeter = new DefaultBandwidthMeter.Builder().setInitialBitrateEstimate(bitrateEstimate).build();
+        }
+
         boolean areVisible = subtitleView.getVisibility() == VISIBLE;
         if (areVisible != videoVM.areSubtitlesEnabled) {
             subtitleView.setVisibility(videoVM.areSubtitlesEnabled ? VISIBLE : GONE);
