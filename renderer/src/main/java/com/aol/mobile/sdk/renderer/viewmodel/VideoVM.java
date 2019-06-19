@@ -43,6 +43,7 @@ public class VideoVM {
     public boolean isActive;
     public boolean isAd;
     public boolean useSoftwareCodec;
+    public long bandwidthEstimate;
     @Nullable
     public Callbacks callbacks;
 
