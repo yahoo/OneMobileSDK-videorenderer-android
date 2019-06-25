@@ -99,9 +99,10 @@ public final class RenderersRegistry {
 
     @NonNull
     public VideoRenderer getRenderer(@NonNull String id, @NonNull Context context) {
-        VideoRenderer.Producer producer = registry.get(id);
+        return new ExoUniversalRenderer(context);
+        /*VideoRenderer.Producer producer = registry.get(id);
         if (producer == null) throw new RuntimeException("No renderer record found for id:" + id);
-        return producer.createRenderer(context);
+        return producer.createRenderer(context);*/
     }
 
     public boolean hasRenderer(@NonNull String renderer) {

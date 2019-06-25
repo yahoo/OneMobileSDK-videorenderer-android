@@ -93,8 +93,9 @@ import static com.google.android.exoplayer2.util.Util.areEqual;
 import static com.google.android.exoplayer2.util.Util.getUserAgent;
 import static com.google.android.exoplayer2.util.Util.inferContentType;
 
-class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfaceListener,
+class ExoUniversalRenderer extends FrameLayout implements VideoRenderer, VideoSurfaceListener,
         Player.EventListener, VideoListener {
+
     @NonNull
     private final DefaultBandwidthMeter bandwidthMeter = new DefaultBandwidthMeter.Builder()
             .setInitialBitrateEstimate(12094635)
@@ -134,17 +135,91 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
     @NonNull
     private List<ExternalSubtitle> externalSubtitles = new ArrayList<>();
     private boolean endReported;
+    private AdsLoader.EventListener eventListener;
 
-    public ExoVideoRenderer(@NonNull Context context) {
+    private class AdView implements VideoRenderer {
+        @Nullable
+        private VideoVM.Callbacks callbacks;
+        @Nullable
+        private String videoUrl;
+        private boolean shouldPlay;
+        @Nullable
+        private Long duration;
+        private boolean isActive;
+
+        @Override
+        public void render(@NonNull VideoVM videoVM) {
+            if (videoVM.callbacks != null) {
+                renderCallbacks(videoVM.callbacks);
+            }
+
+            if (!areEqual(videoUrl, videoVM.videoUrl)) {
+                videoUrl = videoVM.videoUrl;
+                if (videoUrl == null) {
+                    if (callbacks != null) {
+                        callbacks.onVideoFrameGone();
+                    }
+                } else {
+                    AdPlaybackState adPlaybackState = new AdPlaybackState(0);
+                    adPlaybackState = adPlaybackState.withAdUri(0, 0, Uri.parse(videoUrl));
+                    adPlaybackState = adPlaybackState.withAdCount(0, 1);
+                    eventListener.onAdPlaybackState(adPlaybackState);
+                }
+            }
+
+            if (videoVM.shouldPlay) {
+                resumePlayback(false);
+            } else {
+                pausePlayback(false);
+            }
+        }
+
+        void updateDuration() {
+            if (exoPlayer == null || exoPlayer.getDuration() == C.TIME_UNSET && exoPlayer.getCurrentPosition() == 0) {
+                return;
+            }
+            long duration = exoPlayer.getDuration();
+            this.duration = duration == C.TIME_UNSET || exoPlayer.isCurrentWindowDynamic() ? 0 : duration;
+            if (callbacks != null) {
+                callbacks.onDurationReceived(this.duration);
+            }
+        }
+
+        @Override
+        public void dispose() {
+            callbacks = null;
+        }
+
+
+        public VideoRenderer getAdRenderer() {
+            return null;
+        }
+
+        private void renderCallbacks(@NonNull VideoVM.Callbacks callbacks) {
+            if (this.callbacks != callbacks) {
+                this.callbacks = callbacks;
+                if (getWidth() != 0 && getHeight() != 0) {
+                    callbacks.onViewportResized(getWidth(), getHeight());
+                }
+            }
+        }
+    }
+
+    private AdView adRenderer;
+
+    public VideoRenderer getAdRenderer() {
+        return adRenderer;
+    }
+
+    public ExoUniversalRenderer(@NonNull Context context) {
         super(context);
 
         subtitleView = new SubtitleView(context);
+        adRenderer = new AdView();
 
         this.context = context;
-    }
-
-    public VideoRenderer getAdRenderer(){
-        return null;
+        View flatRendererView = new FlatRendererView(context, this);
+        setRenderer(flatRendererView);
     }
 
     @NonNull
@@ -204,16 +279,7 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
 
             @Override
             public void attachPlayer(ExoPlayer player, EventListener eventListener, ViewGroup adUiViewGroup) {
-                new Handler().postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        AdPlaybackState adPlaybackState = new AdPlaybackState(10 * C.MICROS_PER_SECOND);
-                        adPlaybackState = adPlaybackState.withAdUri(0, 0, Uri.parse("http://techslides.com/demos/sample-videos/small.mp4"));
-                        adPlaybackState = adPlaybackState.withAdCount(0, 1);
-                        eventListener.onAdPlaybackState(adPlaybackState);
-                    }
-                }, 8000);
-
+                ExoUniversalRenderer.this.eventListener = eventListener;
             }
 
             @Override
@@ -368,7 +434,7 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
         exoPlayer.addVideoListener(this);
         exoPlayer.setVolume(isMuted ? 0f : 1f);
         exoPlayer.setVideoSurface(surface);
-        exoPlayer.setPlayWhenReady(shouldPlay);
+        exoPlayer.setPlayWhenReady(shouldPlay || adRenderer.shouldPlay);
     }
 
     private void scaleViewport() {
@@ -403,6 +469,9 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
         if (callbacks != null) {
             callbacks.onViewportResized(viewportWidth, viewportHeight);
         }
+        if (adRenderer.callbacks != null) {
+            adRenderer.callbacks.onViewportResized(viewportWidth, viewportHeight);
+        }
     }
 
     public void render(@NonNull VideoVM videoVM) {
@@ -428,9 +497,9 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
         }
 
         if (videoVM.shouldPlay) {
-            resumePlayback();
+            resumePlayback(true);
         } else {
-            pausePlayback();
+            pausePlayback(true);
         }
 
         if (streamRenderer instanceof GlEsRendererView) {
@@ -498,30 +567,58 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
         }
     }
 
-    private void pausePlayback() {
-        if (shouldPlay) {
-            shouldPlay = false;
-
-            if (exoPlayer != null) {
-                exoPlayer.setPlayWhenReady(false);
-                progressTimer.stop();
+    private void pausePlayback(boolean isContent) {
+        if (isContent) {
+            if (shouldPlay) {
+                shouldPlay = false;
+                if (adRenderer.shouldPlay) return;
+                if (exoPlayer != null) {
+                    exoPlayer.setPlayWhenReady(false);
+                    progressTimer.stop();
+                }
+            }
+        } else {
+            if (adRenderer.shouldPlay) {
+                adRenderer.shouldPlay = false;
+                if (shouldPlay) return;
+                if (exoPlayer != null) {
+                    exoPlayer.setPlayWhenReady(false);
+                    progressTimer.stop();
+                }
             }
         }
     }
 
-    private void resumePlayback() {
-        if (!shouldPlay) {
-            // Update style and size from CaptioningManager
-            subtitleView.setUserDefaultStyle();
-            subtitleView.setUserDefaultTextSize();
+    private void resumePlayback(boolean isContent) {
+        if (isContent) {
+            if (!shouldPlay) {
+                // Update style and size from CaptioningManager
+                subtitleView.setUserDefaultStyle();
+                subtitleView.setUserDefaultTextSize();
 
-            shouldPlay = true;
+                shouldPlay = true;
 
-            if (exoPlayer != null) {
-                if (exoPlayer.isCurrentWindowDynamic() && exoPlayer.isCurrentWindowSeekable()) {
-                    exoPlayer.seekToDefaultPosition();
+                if (exoPlayer != null) {
+                    if (exoPlayer.isCurrentWindowDynamic() && exoPlayer.isCurrentWindowSeekable()) {
+                        exoPlayer.seekToDefaultPosition();
+                    }
+                    exoPlayer.setPlayWhenReady(true);
                 }
-                exoPlayer.setPlayWhenReady(true);
+            }
+        } else {
+            if (!adRenderer.shouldPlay) {
+                // Update style and size from CaptioningManager
+                subtitleView.setUserDefaultStyle();
+                subtitleView.setUserDefaultTextSize();
+
+                adRenderer.shouldPlay = true;
+
+                if (exoPlayer != null) {
+                    if (exoPlayer.isCurrentWindowDynamic() && exoPlayer.isCurrentWindowSeekable()) {
+                        exoPlayer.seekToDefaultPosition();
+                    }
+                    exoPlayer.setPlayWhenReady(true);
+                }
             }
         }
     }
@@ -563,24 +660,31 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
 
         switch (playbackState) {
             case Player.STATE_READY:
+                if (adRenderer.callbacks != null) {
+                    adRenderer.callbacks.onVideoPlaybackFlagUpdated(playWhenReady);
+                }
                 if (callbacks != null) {
                     callbacks.onVideoPlaybackFlagUpdated(playWhenReady);
+                    endReported = false;
                 }
-                if (playWhenReady)
-                    progressTimer.start();
-                endReported = false;
+                //if (playWhenReady)
+                progressTimer.start();
                 break;
 
             case Player.STATE_IDLE:
             case Player.STATE_BUFFERING:
-                progressTimer.stop();
+                //progressTimer.stop();
+                if (adRenderer.callbacks != null) {
+                    adRenderer.callbacks.onVideoPlaybackFlagUpdated(false);
+                }
                 if (callbacks != null) {
                     callbacks.onVideoPlaybackFlagUpdated(false);
+                    endReported = false;
                 }
-                endReported = false;
                 break;
 
             case Player.STATE_ENDED:
+
                 if (!exoPlayer.isCurrentWindowDynamic()) {
                     progressTimer.stop();
                     if (callbacks != null) {
@@ -805,6 +909,9 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
         if (callbacks != null) {
             callbacks.onVideoFrameVisible();
         }
+        if (adRenderer.callbacks != null) {
+            adRenderer.callbacks.onVideoFrameVisible();
+        }
     }
 
     private class ProgressTimer {
@@ -812,22 +919,57 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
         private Runnable action = new Runnable() {
             @Override
             public void run() {
-                if (callbacks != null && exoPlayer != null) {
-                    long position = exoPlayer.getCurrentPosition();
-                    if (position < 0) {
-                        position = 0;
+                if (exoPlayer != null) {
+                    if (exoPlayer.isPlayingAd()) {
+                        adRenderer.isActive = true;
+                        if (adRenderer.callbacks != null) {
+                            long position = exoPlayer.getCurrentPosition();
+                            if (position < 0) {
+                                position = 0;
+                            }
+                            int bufferedPercentage = exoPlayer.getBufferedPercentage();
+                            bufferedPercentage = bufferedPercentage > 100 ? 100 : bufferedPercentage;
+                            bufferedPercentage = bufferedPercentage < 0 ? 0 : bufferedPercentage;
+                            adRenderer.callbacks.onVideoBufferUpdated(bufferedPercentage);
+                            if (adRenderer.duration == null) {
+                                adRenderer.updateDuration();
+                            }
+                            if (adRenderer.duration != null && exoPlayer.getPlaybackState() == Player.STATE_READY
+                                    && adRenderer.shouldPlay && (position <= adRenderer.duration || adRenderer.duration == 0)) {
+                                adRenderer.callbacks.onVideoPositionUpdated(position);
+                            }
+                        }
+                    } else {
+                        if (adRenderer.isActive){
+                            adRenderer.isActive = false;
+                            if (adRenderer.callbacks != null) {
+                                adRenderer.callbacks.onVideoPositionUpdated(adRenderer.duration);
+                                adRenderer.callbacks.onVideoPlaybackFlagUpdated(false);
+                                adRenderer.callbacks.onVideoEnded();
+                                adRenderer.shouldPlay = false;
+                                adRenderer.duration = null;
+                                adRenderer.videoUrl = null;
+                            }
+                        }
+                        if (callbacks != null) {
+                            long position = exoPlayer.getCurrentPosition();
+                            if (position < 0) {
+                                position = 0;
+                            }
+                            int bufferedPercentage = exoPlayer.getBufferedPercentage();
+                            bufferedPercentage = bufferedPercentage > 100 ? 100 : bufferedPercentage;
+                            bufferedPercentage = bufferedPercentage < 0 ? 0 : bufferedPercentage;
+                            callbacks.onVideoBufferUpdated(bufferedPercentage);
+                            if (duration == null) {
+                                updateDuration();
+                            }
+                            if (duration != null && exoPlayer.getPlaybackState() == Player.STATE_READY
+                                    && shouldPlay && (position <= duration || duration == 0)) {
+                                callbacks.onVideoPositionUpdated(position);
+                            }
+                        }
                     }
-                    int bufferedPercentage = exoPlayer.getBufferedPercentage();
-                    bufferedPercentage = bufferedPercentage > 100 ? 100 : bufferedPercentage;
-                    bufferedPercentage = bufferedPercentage < 0 ? 0 : bufferedPercentage;
-                    callbacks.onVideoBufferUpdated(bufferedPercentage);
-                    if (duration == null) {
-                        updateDuration();
-                    }
-                    if (duration != null && exoPlayer.getPlaybackState() == Player.STATE_READY
-                            && shouldPlay && (position <= duration || duration == 0)) {
-                        callbacks.onVideoPositionUpdated(position);
-                    }
+
                 }
                 postDelayed(action, 200);
             }

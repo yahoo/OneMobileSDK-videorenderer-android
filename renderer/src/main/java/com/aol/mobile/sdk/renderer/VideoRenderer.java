@@ -27,4 +27,6 @@ public interface VideoRenderer {
         @NonNull
         VideoRenderer createRenderer(@NonNull Context context);
     }
+
+    VideoRenderer getAdRenderer();
 }
