@@ -28,9 +28,9 @@ import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.Timeline;
 import com.google.android.exoplayer2.source.BehindLiveWindowException;
+import com.google.android.exoplayer2.source.DefaultMediaSourceEventListener;
 import com.google.android.exoplayer2.source.ExtractorMediaSource;
 import com.google.android.exoplayer2.source.MediaSource;
-import com.google.android.exoplayer2.source.MediaSourceEventListener;
 import com.google.android.exoplayer2.source.MergingMediaSource;
 import com.google.android.exoplayer2.source.SingleSampleMediaSource;
 import com.google.android.exoplayer2.source.TrackGroup;
@@ -40,7 +40,6 @@ import com.google.android.exoplayer2.trackselection.AdaptiveTrackSelection;
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
 import com.google.android.exoplayer2.trackselection.FixedTrackSelection;
 import com.google.android.exoplayer2.trackselection.MappingTrackSelector;
-import com.google.android.exoplayer2.trackselection.MappingTrackSelector.SelectionOverride;
 import com.google.android.exoplayer2.trackselection.TrackSelection;
 import com.google.android.exoplayer2.trackselection.TrackSelectionArray;
 import com.google.android.exoplayer2.ui.SubtitleView;
@@ -137,35 +136,20 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
             case C.TYPE_HLS:
                 HlsMediaSource.Factory hlsMediaFactory = new HlsMediaSource.Factory(dataSourceFactory)
                         .setAllowChunklessPreparation(true);
-                source = hlsMediaFactory.createMediaSource(videoUri, handler, new MediaSourceEventListener() {
-                    @Override
-                    public void onLoadStarted(DataSpec dataSpec, int i, int i1, Format format, int i2, Object o, long l, long l1, long l2) {
-                    }
+                source = hlsMediaFactory.createMediaSource(videoUri, handler, new DefaultMediaSourceEventListener() {
 
                     @Override
-                    public void onLoadCompleted(DataSpec dataSpec, int i, int i1, Format format, int i2, Object o, long l, long l1, long l2, long l3, long l4) {
-                        if (callbacks != null && format != null) {
-                            callbacks.onHlsBitrateUpdated(format.bitrate);
+                    public void onLoadCompleted(int windowIndex, @Nullable MediaSource.MediaPeriodId mediaPeriodId, LoadEventInfo loadEventInfo, MediaLoadData mediaLoadData) {
+                        if (callbacks != null && mediaLoadData != null && mediaLoadData.trackFormat != null) {
+                            callbacks.onHlsBitrateUpdated(mediaLoadData.trackFormat.bitrate);
                         }
                     }
 
                     @Override
-                    public void onLoadCanceled(DataSpec dataSpec, int i, int i1, Format format, int i2, Object o, long l, long l1, long l2, long l3, long l4) {
-                    }
-
-                    @Override
-                    public void onLoadError(DataSpec dataSpec, int i, int i1, Format format, int i2, Object o, long l, long l1, long l2, long l3, long l4, IOException e, boolean b) {
+                    public void onLoadError(int windowIndex, @Nullable MediaSource.MediaPeriodId mediaPeriodId, LoadEventInfo loadEventInfo, MediaLoadData mediaLoadData, IOException error, boolean wasCanceled) {
                         if (shouldPlay && exoPlayer != null && !exoPlayer.getPlayWhenReady()) {
                             playVideo(videoUrl, ExoVideoRenderer.this.subtitleLang, subtitleUrl);
                         }
-                    }
-
-                    @Override
-                    public void onUpstreamDiscarded(int i, long l, long l1) {
-                    }
-
-                    @Override
-                    public void onDownstreamFormatChanged(int i, Format format, int i1, Object o, long l) {
                     }
                 });
                 break;
@@ -348,7 +332,7 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
 
         if (audioTrack.language == null || audioTrack.language.length() == 0) {
             TrackGroupArray trackGroups = info.getTrackGroups(audioTrack.id.renderer);
-            SelectionOverride override = new SelectionOverride(selectionFactory, audioTrack.id.group, audioTrack.id.track);
+            DefaultTrackSelector.SelectionOverride override = new DefaultTrackSelector.SelectionOverride(audioTrack.id.group, audioTrack.id.track);
             trackSelector.setSelectionOverride(audioTrack.id.renderer, trackGroups, override);
         } else {
             trackSelector.setParameters(trackSelector.getParameters()
@@ -367,7 +351,7 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
             trackSelector.setRendererDisabled(textTrack.id.renderer, true);
         } else {
             TrackGroupArray trackGroups = info.getTrackGroups(textTrack.id.renderer);
-            SelectionOverride override = new SelectionOverride(selectionFactory, textTrack.id.group, textTrack.id.track);
+            DefaultTrackSelector.SelectionOverride override = new DefaultTrackSelector.SelectionOverride(textTrack.id.group, textTrack.id.track);
             trackSelector.setRendererDisabled(textTrack.id.renderer, false);
             trackSelector.setSelectionOverride(textTrack.id.renderer, trackGroups, override);
         }
