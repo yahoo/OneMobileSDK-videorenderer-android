@@ -13,6 +13,8 @@ androidCi {
 }
 
 android {
+    compileSdkVersion 28
+    buildToolsVersion '28.0.3'
     defaultConfig {
         buildConfigField "String", 'FLAT_RENDERER', "\"com.onemobilesdk.videorenderer.flat@$version\""
         buildConfigField "String", 'THREE_SIXTY_RENDERER', "\"com.onemobilesdk.videorenderer.360@$version\""
@@ -42,7 +44,7 @@ dependencies {
 
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version"
     testImplementation "org.assertj:assertj-core:3.9.1"
-    testImplementation "org.mockito:mockito-core:2.16.0"
+    testImplementation "org.mockito:mockito-core:2.28.2"
 }
 
 configurations.all {
