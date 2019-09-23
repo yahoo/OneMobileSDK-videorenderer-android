@@ -9,6 +9,7 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
 import com.aol.mobile.sdk.renderer.AudioTrack;
+import com.aol.mobile.sdk.renderer.ErrorInfo;
 import com.aol.mobile.sdk.renderer.ExternalSubtitle;
 import com.aol.mobile.sdk.renderer.TextTrack;
 
@@ -94,6 +95,13 @@ public class VideoVM {
          * @param error one of {@link Error}
          */
         void onErrorOccurred(@NonNull Error error);
+
+        /**
+         * Fired when error encountered during video playback with details
+         *
+         * @param errorInfo one of {@link ErrorInfo}
+         */
+        void onError(@NonNull ErrorInfo errorInfo);
 
         /**
          * Camera direction angles
