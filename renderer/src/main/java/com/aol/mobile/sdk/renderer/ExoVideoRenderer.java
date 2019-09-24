@@ -31,6 +31,8 @@ import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.Renderer;
 import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.Timeline;
+import com.google.android.exoplayer2.mediacodec.MediaCodecRenderer;
+import com.google.android.exoplayer2.mediacodec.MediaCodecUtil;
 import com.google.android.exoplayer2.source.BehindLiveWindowException;
 import com.google.android.exoplayer2.source.DefaultMediaSourceEventListener;
 import com.google.android.exoplayer2.source.ExtractorMediaSource;
@@ -64,6 +66,7 @@ import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter;
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
 import com.google.android.exoplayer2.upstream.DefaultHttpDataSourceFactory;
+import com.google.android.exoplayer2.upstream.HttpDataSource;
 import com.google.android.exoplayer2.util.MimeTypes;
 import com.google.android.exoplayer2.video.VideoListener;
 
@@ -675,11 +678,71 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
         if (callbacks != null) {
             if (isConnectionError) {
                 callbacks.onErrorOccurred(CONNECTION);
+                callbacks.onError(new ErrorInfo(CONNECTION, error, getExoplaybackExceptionCause(error)));
             } else {
                 callbacks.onErrorOccurred(CONTENT);
+                callbacks.onError(new ErrorInfo(CONTENT, error, getExoplaybackExceptionCause(error)));
             }
         }
     }
+
+
+
+    /**
+     * Extract detailed error message from {@link ExoPlaybackException}
+     *
+     * @param error
+     * @return errorString {@link String}
+     */
+    private String getExoplaybackExceptionCause(ExoPlaybackException error) {
+        String errorString = error.getMessage();
+        String msg = "";
+
+        switch (error.type) {
+            case ExoPlaybackException.TYPE_RENDERER:
+                if (error.type == ExoPlaybackException.TYPE_RENDERER) {
+                    Exception cause = error.getRendererException();
+                    if (cause instanceof MediaCodecRenderer.DecoderInitializationException) {
+                        // Special case for decoder initialization failures.
+                        MediaCodecRenderer.DecoderInitializationException decoderInitializationException =
+                                (MediaCodecRenderer.DecoderInitializationException) cause;
+                        if (decoderInitializationException.decoderName == null) {
+                            if (decoderInitializationException.getCause() instanceof MediaCodecUtil.DecoderQueryException) {
+                                msg = "Unable to query device decoders";
+                            } else if (decoderInitializationException.secureDecoderRequired) {
+                                msg = String.format("This device does not provide a secure decoder for %s",
+                                        decoderInitializationException.mimeType);
+                            } else {
+                                msg = String.format("This device does not provide a decoder for %s",
+                                        decoderInitializationException.mimeType);
+                            }
+                        } else {
+                            msg = String.format("Unable to instantiate decoder %s",
+                                    decoderInitializationException.decoderName);
+                        }
+                    }
+                }
+                errorString = "Renderer Exception - " + msg;
+                break;
+            case ExoPlaybackException.TYPE_SOURCE:
+                Exception cause = error.getSourceException();
+                if (cause instanceof HttpDataSource.HttpDataSourceException) {
+                    msg = "HttpDataSource.HttpDataSourceException: "+ errorString;
+                } else if(cause instanceof HttpDataSource.InvalidContentTypeException) {
+                    msg = "HttpDataSource.InvalidContentTypeException: "+ errorString;
+                } else if(cause instanceof HttpDataSource.InvalidResponseCodeException) {
+                    msg = "HttpDataSource.InvalidResponseCodeException: "+ errorString;
+                }
+                errorString = "Source Exception - " + msg;
+                break;
+            case ExoPlaybackException.TYPE_UNEXPECTED:
+                msg = error.getUnexpectedException().getMessage();
+                errorString = "Unexpected Exception - " + msg;
+                break;
+        }
+        return errorString;
+    }
+
 
     @Override
     public void onPositionDiscontinuity(int reason) {
