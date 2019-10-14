@@ -44,6 +44,8 @@ public class VideoVM {
     public boolean isActive;
     public boolean isAd;
     public boolean useSoftwareCodec;
+    public boolean isRetry;
+
     @Nullable
     public Callbacks callbacks;
 
