@@ -379,10 +379,10 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
 
         this.scalable = videoVM.isScalable;
         this.maintainAspectRatio = videoVM.isMaintainAspectRatio;
-        if (videoVM.isRecovery || !areEqual(videoUrl, videoVM.videoUrl) ) {
+        if (videoVM.isRetry || !areEqual(videoUrl, videoVM.videoUrl) ) {
             extensionRendererMode = videoVM.useSoftwareCodec ? EXTENSION_RENDERER_MODE_PREFER : EXTENSION_RENDERER_MODE_ON;
             playVideo(videoVM.videoUrl, videoVM.externalSubtitles);
-            videoVM.isRecovery = false;
+            videoVM.isRetry = false;
         }
 
         Long seekPos = videoVM.seekPosition;
