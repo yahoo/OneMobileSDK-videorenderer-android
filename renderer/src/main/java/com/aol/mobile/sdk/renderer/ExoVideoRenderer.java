@@ -200,7 +200,8 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
         switch (format.toUpperCase()) {
             case "SRT":
                 return APPLICATION_SUBRIP;
-
+            case "HLSVTT":
+                return TEXT_VTT;
             case "VTT":
                 return TEXT_VTT;
 
@@ -211,10 +212,11 @@ class ExoVideoRenderer extends FrameLayout implements VideoRenderer, VideoSurfac
             case "DFXP":
             case "TTML":
                 return APPLICATION_TTML;
+            default:
+                return TEXT_VTT; //default to vtt this will filter out format with invalid mimeType from getting into mergingmediasource, it will prevent crashing the exoplayer. 
         }
-
-        return format;
     }
+
 
     protected void setRenderer(@NonNull View renderer) {
         this.streamRenderer = renderer;
