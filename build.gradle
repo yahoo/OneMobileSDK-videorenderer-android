@@ -14,7 +14,7 @@ buildscript {
         google()
         jcenter()
         maven {
-            url 'https://raw.github.com/OathAdPlatforms/OneMobileSDK-releases-android/maven/'
+            url 'https://raw.github.com/yahoo/OneMobileSDK-releases-android/maven/'
         }
     }
     dependencies {
@@ -29,7 +29,7 @@ buildscript {
 allprojects {
     repositories {
         maven {
-            url 'https://raw.githubusercontent.com/OathAdPlatforms/OneMobileSDK-releases-android/maven/'
+            url 'https://raw.githubusercontent.com/yahoo/OneMobileSDK-releases-android/maven/'
         }
         google()
         jcenter()
